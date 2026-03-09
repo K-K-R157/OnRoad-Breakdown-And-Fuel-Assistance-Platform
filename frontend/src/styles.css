@@ -1,0 +1,240 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-navy-950: #0F172A;
+  --color-navy-900: #1E293B;
+  --color-navy-800: #1E3A5F;
+  --color-navy-700: #243B55;
+  --color-amber-400: #FBBF24;
+  --color-amber-500: #F59E0B;
+  --color-amber-600: #D97706;
+  --font-family-sans: 'Outfit', sans-serif;
+  --font-family-display: 'Space Grotesk', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: 'Outfit', sans-serif;
+  background-color: #0F172A;
+  color: #f1f5f9;
+}
+
+/* Glassmorphism utility */
+.glass {
+  background: rgba(30, 41, 59, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Pulse animation for map markers */
+@keyframes ping-slow {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.6); opacity: 0; }
+}
+.animate-ping-slow {
+  animation: ping-slow 2s cubic-bezier(0,0,0.2,1) infinite;
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #F59E0B 0%, #FBBF24 50%, #FDE68A 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #1E293B; }
+::-webkit-scrollbar-thumb { background: #F59E0B; border-radius: 3px; }
+
+.page-shell {
+  width: min(980px, 92vw);
+  margin: 32px auto;
+  display: grid;
+  gap: 18px;
+  animation: fadeIn 360ms ease-out;
+}
+
+.hero-band {
+  background: linear-gradient(120deg, #1f2f45, #2f4b58 55%, #006d77);
+  color: #f5fbff;
+  border-radius: 18px;
+  padding: 28px 24px;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.16);
+}
+
+.hero-band h1 {
+  margin: 0;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: clamp(1.4rem, 2.8vw, 2rem);
+}
+
+.hero-band p {
+  margin: 10px 0 0;
+  color: #dceaf1;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 12px 22px rgba(27, 35, 44, 0.08);
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.tabs button {
+  border: 1px solid var(--line);
+  background: white;
+  color: var(--ink-soft);
+  border-radius: 999px;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: 140ms ease;
+}
+
+.tabs button.active {
+  border-color: var(--brand);
+  color: var(--brand-dark);
+  background: #def3f2;
+}
+
+.form-grid {
+  display: grid;
+  gap: 12px;
+}
+
+label {
+  display: grid;
+  gap: 6px;
+  font-size: 0.92rem;
+  color: var(--ink-soft);
+}
+
+input,
+select,
+button {
+  font: inherit;
+}
+
+.page-shell input,
+.page-shell select,
+.card input,
+.card select {
+  border: 1px solid #ccd4dd;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: white;
+}
+
+.primary-btn {
+  border: 0;
+  border-radius: 10px;
+  padding: 11px 14px;
+  color: white;
+  background: linear-gradient(120deg, var(--brand), #0a9396);
+  cursor: pointer;
+}
+
+.dashboard-card header h2 {
+  margin: 0;
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.dashboard-card header p {
+  margin-top: 4px;
+  color: var(--ink-soft);
+}
+
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.action-row button {
+  border: 1px solid #c3ccd5;
+  border-radius: 10px;
+  padding: 9px 12px;
+  background: #f9fbff;
+  cursor: pointer;
+}
+
+.grid-two {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr 1fr;
+}
+
+article {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px;
+  background: white;
+}
+
+article h3 {
+  margin-top: 0;
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.ok-text,
+.error-text {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+}
+
+.ok-text {
+  background: #dff7f1;
+  color: #0a5d4f;
+}
+
+.error-text {
+  background: #ffe2dd;
+  color: var(--warn);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 760px) {
+  .grid-two {
+    grid-template-columns: 1fr;
+  }
+
+  .page-shell {
+    margin: 20px auto;
+  }
+}
