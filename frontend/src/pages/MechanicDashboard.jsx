@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Wrench,
@@ -65,7 +66,17 @@ const STATUS_FLOW = [
 export default function MechanicDashboard() {
   const { session } = useAuth();
   const token = session?.token;
-  const [activeTab, setActiveTab] = useState("requests");
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState(() => {
+    const p = new URLSearchParams(location.search);
+    return p.get("tab") || "requests";
+  });
+
+  useEffect(() => {
+    const tab =
+      new URLSearchParams(location.search).get("tab") || location.state?.tab;
+    if (tab) setActiveTab(tab);
+  }, [location]);
 
   return (
     <main className="min-h-screen bg-slate-950 pt-20 pb-12 px-4">
@@ -473,6 +484,7 @@ function ProfileTab({ token }) {
           servicesOffered: (res.data.servicesOffered || []).join(", "),
           experience: res.data.experience || 0,
           availability: res.data.availability !== false,
+          serviceRadius: res.data.serviceRadius || 10,
           latitude: res.data.location?.coordinates?.[1] || "",
           longitude: res.data.location?.coordinates?.[0] || "",
         });
@@ -499,6 +511,7 @@ function ProfileTab({ token }) {
           .filter(Boolean),
         experience: Number(editForm.experience),
         availability: editForm.availability,
+        serviceRadius: Number(editForm.serviceRadius) || 10,
       };
       if (editForm.latitude && editForm.longitude) {
         body.location = {
@@ -612,6 +625,20 @@ function ProfileTab({ token }) {
                 className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:border-emerald-500/50 outline-none"
               />
             </div>
+          </div>
+          <div>
+            <label className="text-slate-400 text-xs mb-1 block">
+              Service Radius (km) — how far you're willing to travel
+            </label>
+            <input
+              type="number"
+              min="1"
+              value={editForm.serviceRadius}
+              onChange={(e) =>
+                setEditForm((p) => ({ ...p, serviceRadius: e.target.value }))
+              }
+              className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:border-emerald-500/50 outline-none"
+            />
           </div>
           <div>
             <label className="text-slate-400 text-xs mb-1 block">Address</label>

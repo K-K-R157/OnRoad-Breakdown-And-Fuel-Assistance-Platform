@@ -25,7 +25,7 @@ import { useAuth } from "../context/AuthContext";
 const ROLES = [
   {
     value: "user",
-    label: "Driver",
+    label: "User",
     icon: <User className="w-6 h-6" />,
     desc: "Need roadside help",
     color: "from-blue-500 to-blue-600",
@@ -448,7 +448,6 @@ export default function LoginPage() {
                               <option value="Petrol">Petrol</option>
                               <option value="Diesel">Diesel</option>
                               <option value="CNG">CNG</option>
-                              <option value="Electric">Electric</option>
                             </select>
                             <InputField
                               icon={<IndianRupee className="w-4 h-4" />}

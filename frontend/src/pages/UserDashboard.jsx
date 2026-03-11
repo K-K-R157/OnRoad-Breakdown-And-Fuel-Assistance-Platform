@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
@@ -22,6 +23,10 @@ import {
   Eye,
   X,
   ArrowRight,
+  Camera,
+  User,
+  Save,
+  Radar,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -60,7 +65,17 @@ const STATUS_COLORS = {
 export default function UserDashboard() {
   const { session } = useAuth();
   const token = session?.token;
-  const [activeTab, setActiveTab] = useState("mechanics");
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState(() => {
+    const p = new URLSearchParams(location.search);
+    return p.get("tab") || "mechanics";
+  });
+
+  useEffect(() => {
+    const tab =
+      new URLSearchParams(location.search).get("tab") || location.state?.tab;
+    if (tab) setActiveTab(tab);
+  }, [location]);
 
   return (
     <main className="min-h-screen bg-slate-950 pt-20 pb-12 px-4">
@@ -109,6 +124,7 @@ export default function UserDashboard() {
             {activeTab === "fuel" && <SearchFuelTab token={token} />}
             {activeTab === "requests" && <MyRequestsTab token={token} />}
             {activeTab === "feedback" && <FeedbackTab token={token} />}
+            {activeTab === "profile" && <ProfileTab token={token} />}
           </motion.div>
         </AnimatePresence>
       </div>
@@ -128,14 +144,19 @@ function SearchMechanicsTab({ token }) {
     problemDescription: "",
     address: "",
   });
+  const [vehiclePhoto, setVehiclePhoto] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
   const [sending, setSending] = useState(false);
   const [sentSuccess, setSentSuccess] = useState("");
+  const [manualLat, setManualLat] = useState("");
+  const [manualLng, setManualLng] = useState("");
+  const [searchRadius, setSearchRadius] = useState(50);
 
-  const searchNearby = useCallback(async (lat, lng) => {
+  const searchNearby = useCallback(async (lat, lng, radiusKm = 50) => {
     setLoading(true);
     setError("");
     try {
-      const res = await mechanicAPI.getNearby(lng, lat, 50000);
+      const res = await mechanicAPI.getNearby(lng, lat, radiusKm * 1000);
       setMechanics(res.data || []);
       if ((res.data || []).length === 0)
         setError("No mechanics found nearby. Try increasing the search range.");
@@ -152,9 +173,12 @@ function SearchMechanicsTab({ token }) {
         (pos) => {
           const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
           setUserLoc(loc);
-          searchNearby(loc.lat, loc.lng);
+          searchNearby(loc.lat, loc.lng, searchRadius);
         },
-        () => setError("Location access denied. Please enable GPS."),
+        () =>
+          setError(
+            "Location access denied. Please enable GPS or enter manually.",
+          ),
         { enableHighAccuracy: true },
       );
     } else {
@@ -162,24 +186,58 @@ function SearchMechanicsTab({ token }) {
     }
   };
 
+  const manualSearch = () => {
+    const lat = parseFloat(manualLat);
+    const lng = parseFloat(manualLng);
+    if (
+      isNaN(lat) ||
+      isNaN(lng) ||
+      lat < -90 ||
+      lat > 90 ||
+      lng < -180 ||
+      lng > 180
+    ) {
+      setError(
+        "Please enter valid latitude (-90 to 90) and longitude (-180 to 180).",
+      );
+      return;
+    }
+    setUserLoc({ lat, lng });
+    searchNearby(lat, lng, searchRadius);
+  };
+
+  const handlePhotoChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setVehiclePhoto(file);
+      setPhotoPreview(URL.createObjectURL(file));
+    }
+  };
+
   const sendRequest = async () => {
     if (!selectedMechanic || !requestForm.problemDescription) return;
     setSending(true);
     try {
-      await userAPI.createMechanicRequest(token, {
+      const payload = {
         mechanicId: selectedMechanic._id,
         problemDescription: requestForm.problemDescription,
         address: requestForm.address || selectedMechanic.address,
         location: userLoc
           ? { type: "Point", coordinates: [userLoc.lng, userLoc.lat] }
           : undefined,
-      });
+      };
+      if (vehiclePhoto) {
+        payload.images = [photoPreview];
+      }
+      await userAPI.createMechanicRequest(token, payload);
       setSentSuccess(
         `Request sent to ${selectedMechanic.name}! Check "My Requests" tab for updates.`,
       );
       setShowRequestForm(false);
       setSelectedMechanic(null);
       setRequestForm({ problemDescription: "", address: "" });
+      setVehiclePhoto(null);
+      setPhotoPreview(null);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -198,20 +256,88 @@ function SearchMechanicsTab({ token }) {
           Share your location to find approved mechanics near you. You can then
           share your problem and send a request.
         </p>
-        <button
-          onClick={detectAndSearch}
-          disabled={loading}
-          className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold px-6 py-3 rounded-xl transition-all active:scale-95 disabled:opacity-50"
-        >
-          {loading ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
-          ) : (
-            <Navigation className="w-5 h-5" />
-          )}
-          {loading ? "Searching..." : "Detect Location & Search"}
-        </button>
+        <div className="flex flex-wrap gap-3 items-end">
+          <button
+            onClick={detectAndSearch}
+            disabled={loading}
+            className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold px-6 py-3 rounded-xl transition-all active:scale-95 disabled:opacity-50"
+          >
+            {loading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <Navigation className="w-5 h-5" />
+            )}
+            {loading ? "Searching..." : "Detect Location & Search"}
+          </button>
+        </div>
+        {/* Manual Location Input */}
+        <div className="mt-4 pt-4 border-t border-white/8">
+          <p className="text-slate-400 text-xs mb-3">
+            Or enter location manually:
+          </p>
+          <div className="flex flex-wrap gap-3 items-end">
+            <div>
+              <label className="text-slate-500 text-[10px] mb-1 block">
+                Latitude
+              </label>
+              <input
+                type="number"
+                step="any"
+                placeholder="e.g. 26.1445"
+                value={manualLat}
+                onChange={(e) => setManualLat(e.target.value)}
+                className="w-40 bg-slate-800 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-slate-600 focus:border-amber-500/50 outline-none"
+              />
+            </div>
+            <div>
+              <label className="text-slate-500 text-[10px] mb-1 block">
+                Longitude
+              </label>
+              <input
+                type="number"
+                step="any"
+                placeholder="e.g. 91.7362"
+                value={manualLng}
+                onChange={(e) => setManualLng(e.target.value)}
+                className="w-40 bg-slate-800 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-slate-600 focus:border-amber-500/50 outline-none"
+              />
+            </div>
+            <button
+              onClick={manualSearch}
+              disabled={loading || !manualLat || !manualLng}
+              className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 border border-white/10 text-white font-medium px-5 py-2.5 rounded-xl transition-all disabled:opacity-50"
+            >
+              <Search className="w-4 h-4" /> Search
+            </button>
+          </div>
+        </div>
+        {/* Search Radius Control */}
+        <div className="mt-4 pt-4 border-t border-white/8">
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-slate-400 text-xs flex items-center gap-1.5">
+              <Radar className="w-3.5 h-3.5 text-amber-400" /> Search Radius
+            </label>
+            <span className="text-amber-400 text-sm font-semibold">
+              {searchRadius} km
+            </span>
+          </div>
+          <input
+            type="range"
+            min="5"
+            max="100"
+            step="5"
+            value={searchRadius}
+            onChange={(e) => setSearchRadius(Number(e.target.value))}
+            className="w-full accent-amber-500 h-1.5 bg-slate-700 rounded-full cursor-pointer"
+          />
+          <div className="flex justify-between text-[10px] text-slate-600 mt-1">
+            <span>5 km</span>
+            <span>50 km</span>
+            <span>100 km</span>
+          </div>
+        </div>
         {userLoc && (
-          <p className="text-slate-500 text-xs mt-2">
+          <p className="text-slate-500 text-xs mt-3">
             📍 Location: {userLoc.lat.toFixed(4)}, {userLoc.lng.toFixed(4)}
           </p>
         )}
@@ -268,6 +394,12 @@ function SearchMechanicsTab({ token }) {
                     <p className="text-slate-500 text-xs mt-0.5">
                       {m.experience} yrs experience
                     </p>
+                    {m.serviceRadius > 0 && (
+                      <p className="text-slate-500 text-xs mt-0.5 flex items-center gap-1">
+                        <Radar className="w-3 h-3" /> Service radius:{" "}
+                        {m.serviceRadius} km
+                      </p>
+                    )}
                   </div>
                   <span
                     className={`shrink-0 text-[10px] font-bold px-2 py-1 rounded-full ${m.availability ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"}`}
@@ -363,6 +495,43 @@ function SearchMechanicsTab({ token }) {
                   }
                   className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder:text-slate-500 focus:border-amber-500/50 outline-none"
                 />
+                {/* Optional Vehicle Photo */}
+                <div>
+                  <label className="text-slate-400 text-xs mb-1.5 block">
+                    Vehicle Photo (optional)
+                  </label>
+                  <label className="flex items-center gap-2 bg-slate-800 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-400 hover:border-amber-500/50 cursor-pointer transition-colors">
+                    <Camera className="w-4 h-4" />
+                    {vehiclePhoto
+                      ? vehiclePhoto.name
+                      : "Upload a photo of your vehicle"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoChange}
+                      className="hidden"
+                    />
+                  </label>
+                  {photoPreview && (
+                    <div className="mt-2 relative inline-block">
+                      <img
+                        src={photoPreview}
+                        alt="Vehicle"
+                        className="h-24 rounded-lg border border-white/10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setVehiclePhoto(null);
+                          setPhotoPreview(null);
+                        }}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
+                </div>
                 {userLoc && (
                   <div className="text-xs text-slate-500 flex items-center gap-1">
                     <MapPin className="w-3 h-3 text-amber-400" />
@@ -415,12 +584,15 @@ function SearchFuelTab({ token }) {
   });
   const [sending, setSending] = useState(false);
   const [sentSuccess, setSentSuccess] = useState("");
+  const [manualLat, setManualLat] = useState("");
+  const [manualLng, setManualLng] = useState("");
+  const [searchRadius, setSearchRadius] = useState(50);
 
-  const searchNearby = useCallback(async (lat, lng) => {
+  const searchNearby = useCallback(async (lat, lng, radiusKm = 50) => {
     setLoading(true);
     setError("");
     try {
-      const res = await fuelStationAPI.getNearby(lng, lat, 50000);
+      const res = await fuelStationAPI.getNearby(lng, lat, radiusKm * 1000);
       setStations(res.data || []);
       if ((res.data || []).length === 0)
         setError("No fuel stations found nearby.");
@@ -437,12 +609,37 @@ function SearchFuelTab({ token }) {
         (pos) => {
           const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
           setUserLoc(loc);
-          searchNearby(loc.lat, loc.lng);
+          searchNearby(loc.lat, loc.lng, searchRadius);
         },
-        () => setError("Location access denied."),
+        () =>
+          setError(
+            "Location access denied. Please enable GPS or enter manually.",
+          ),
         { enableHighAccuracy: true },
       );
+    } else {
+      setError("Geolocation not supported by your browser.");
     }
+  };
+
+  const manualSearch = () => {
+    const lat = parseFloat(manualLat);
+    const lng = parseFloat(manualLng);
+    if (
+      isNaN(lat) ||
+      isNaN(lng) ||
+      lat < -90 ||
+      lat > 90 ||
+      lng < -180 ||
+      lng > 180
+    ) {
+      setError(
+        "Please enter valid latitude (-90 to 90) and longitude (-180 to 180).",
+      );
+      return;
+    }
+    setUserLoc({ lat, lng });
+    searchNearby(lat, lng, searchRadius);
   };
 
   const bookFuel = async () => {
@@ -456,7 +653,9 @@ function SearchFuelTab({ token }) {
         deliveryLocation: userLoc
           ? { type: "Point", coordinates: [userLoc.lng, userLoc.lat] }
           : undefined,
-        address: bookForm.address || selectedStation.address,
+        address:
+          bookForm.address ||
+          (userLoc ? "GPS Location" : selectedStation.address),
         paymentMethod: bookForm.paymentMethod,
       });
       setSentSuccess(
@@ -493,6 +692,77 @@ function SearchFuelTab({ token }) {
           )}
           {loading ? "Searching..." : "Find Fuel Stations"}
         </button>
+        {/* Manual Location Input */}
+        <div className="mt-4 pt-4 border-t border-white/8">
+          <p className="text-slate-400 text-xs mb-3">
+            Or enter location manually:
+          </p>
+          <div className="flex flex-wrap gap-3 items-end">
+            <div>
+              <label className="text-slate-500 text-[10px] mb-1 block">
+                Latitude
+              </label>
+              <input
+                type="number"
+                step="any"
+                placeholder="e.g. 26.1445"
+                value={manualLat}
+                onChange={(e) => setManualLat(e.target.value)}
+                className="w-40 bg-slate-800 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-slate-600 focus:border-amber-500/50 outline-none"
+              />
+            </div>
+            <div>
+              <label className="text-slate-500 text-[10px] mb-1 block">
+                Longitude
+              </label>
+              <input
+                type="number"
+                step="any"
+                placeholder="e.g. 91.7362"
+                value={manualLng}
+                onChange={(e) => setManualLng(e.target.value)}
+                className="w-40 bg-slate-800 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-slate-600 focus:border-amber-500/50 outline-none"
+              />
+            </div>
+            <button
+              onClick={manualSearch}
+              disabled={loading || !manualLat || !manualLng}
+              className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 border border-white/10 text-white font-medium px-5 py-2.5 rounded-xl transition-all disabled:opacity-50"
+            >
+              <Search className="w-4 h-4" /> Search
+            </button>
+          </div>
+        </div>
+        {/* Search Radius Control */}
+        <div className="mt-4 pt-4 border-t border-white/8">
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-slate-400 text-xs flex items-center gap-1.5">
+              <Radar className="w-3.5 h-3.5 text-amber-400" /> Search Radius
+            </label>
+            <span className="text-amber-400 text-sm font-semibold">
+              {searchRadius} km
+            </span>
+          </div>
+          <input
+            type="range"
+            min="5"
+            max="100"
+            step="5"
+            value={searchRadius}
+            onChange={(e) => setSearchRadius(Number(e.target.value))}
+            className="w-full accent-amber-500 h-1.5 bg-slate-700 rounded-full cursor-pointer"
+          />
+          <div className="flex justify-between text-[10px] text-slate-600 mt-1">
+            <span>5 km</span>
+            <span>50 km</span>
+            <span>100 km</span>
+          </div>
+        </div>
+        {userLoc && (
+          <p className="text-slate-500 text-xs mt-3">
+            📍 Location: {userLoc.lat.toFixed(4)}, {userLoc.lng.toFixed(4)}
+          </p>
+        )}
       </div>
 
       {error && (
@@ -548,6 +818,29 @@ function SearchFuelTab({ token }) {
                     </span>
                   )}
                 </div>
+                {/* Delivery details */}
+                {s.deliveryAvailable && (
+                  <div className="flex flex-wrap gap-3 mt-2 ml-16">
+                    {s.deliveryRadius > 0 && (
+                      <span className="text-xs text-slate-400 flex items-center gap-1">
+                        <Radar className="w-3 h-3" />
+                        Radius: {s.deliveryRadius} km
+                      </span>
+                    )}
+                    {s.deliveryCharges > 0 && (
+                      <span className="text-xs text-slate-400 flex items-center gap-1">
+                        <IndianRupee className="w-3 h-3" />
+                        Delivery: ₹{s.deliveryCharges}
+                      </span>
+                    )}
+                    {s.minimumOrderQuantity > 0 && (
+                      <span className="text-xs text-slate-400 flex items-center gap-1">
+                        <Fuel className="w-3 h-3" />
+                        Min Order: {s.minimumOrderQuantity}L
+                      </span>
+                    )}
+                  </div>
+                )}
                 {/* Fuel prices */}
                 {s.fuelTypes?.length > 0 && (
                   <div className="flex flex-wrap gap-2 mt-3">
@@ -647,14 +940,29 @@ function SearchFuelTab({ token }) {
                     className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:border-amber-500/50 outline-none"
                   />
                 </div>
-                <input
-                  placeholder="Delivery address"
-                  value={bookForm.address}
-                  onChange={(e) =>
-                    setBookForm((p) => ({ ...p, address: e.target.value }))
-                  }
-                  className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder:text-slate-500 focus:border-amber-500/50 outline-none"
-                />
+                <div>
+                  <label className="text-slate-400 text-xs mb-1 block">
+                    Delivery Address{" "}
+                    <span className="text-slate-600">
+                      (optional — GPS location used if empty)
+                    </span>
+                  </label>
+                  <input
+                    placeholder="Enter address or leave empty to use GPS location"
+                    value={bookForm.address}
+                    onChange={(e) =>
+                      setBookForm((p) => ({ ...p, address: e.target.value }))
+                    }
+                    className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder:text-slate-500 focus:border-amber-500/50 outline-none"
+                  />
+                  {userLoc && !bookForm.address && (
+                    <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                      <MapPin className="w-3 h-3 text-amber-400" />
+                      GPS location will be sent: {userLoc.lat.toFixed(4)},{" "}
+                      {userLoc.lng.toFixed(4)}
+                    </p>
+                  )}
+                </div>
                 <div>
                   <label className="text-slate-400 text-xs mb-1 block">
                     Payment Method
@@ -986,49 +1294,67 @@ function MyRequestsTab({ token }) {
 function FeedbackTab({ token }) {
   const [mechanicReqs, setMechanicReqs] = useState([]);
   const [fuelReqs, setFuelReqs] = useState([]);
+  const [myFeedback, setMyFeedback] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [feedbackForm, setFeedbackForm] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingFeedbackId, setEditingFeedbackId] = useState(null);
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
   const [sending, setSending] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const [mRes, fRes] = await Promise.all([
-          userAPI.getMyMechanicRequests(token),
-          userAPI.getMyFuelRequests(token),
-        ]);
-        setMechanicReqs(
-          (mRes.data || []).filter((r) => r.status === "completed"),
-        );
-        setFuelReqs((fRes.data || []).filter((r) => r.status === "delivered"));
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    })();
+  const loadData = useCallback(async () => {
+    try {
+      const [mRes, fRes, fbRes] = await Promise.all([
+        userAPI.getMyMechanicRequests(token),
+        userAPI.getMyFuelRequests(token),
+        feedbackAPI.getMyFeedback(token),
+      ]);
+      setMechanicReqs(
+        (mRes.data || []).filter((r) => r.status === "completed"),
+      );
+      setFuelReqs((fRes.data || []).filter((r) => r.status === "delivered"));
+      setMyFeedback(fbRes.data || []);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   }, [token]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const getFeedbackForRequest = (requestId) =>
+    myFeedback.find((fb) => (fb.request?._id || fb.request) === requestId);
 
   const submitFeedback = async () => {
     if (!feedbackForm) return;
     setSending(true);
     try {
-      await feedbackAPI.create(token, {
-        requestId: feedbackForm._id,
-        requestType: feedbackForm._type,
-        serviceType: feedbackForm._serviceType,
-        serviceProviderId: feedbackForm._providerId,
-        rating,
-        comment,
-      });
-      setSuccess("Feedback submitted successfully! Thank you.");
+      if (isEditing && editingFeedbackId) {
+        await feedbackAPI.update(token, editingFeedbackId, { rating, comment });
+        setSuccess("Review updated successfully!");
+      } else {
+        await feedbackAPI.create(token, {
+          requestId: feedbackForm._id,
+          requestType: feedbackForm._type,
+          serviceType: feedbackForm._serviceType,
+          serviceProviderId: feedbackForm._providerId,
+          rating,
+          comment,
+        });
+        setSuccess("Feedback submitted successfully! Thank you.");
+      }
       setFeedbackForm(null);
+      setIsEditing(false);
+      setEditingFeedbackId(null);
       setRating(5);
       setComment("");
+      loadData();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -1091,39 +1417,65 @@ function FeedbackTab({ token }) {
       )}
 
       <div className="space-y-3">
-        {completedItems.map((item) => (
-          <div
-            key={item._id}
-            className="glass rounded-xl p-5 border border-white/8"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="text-white font-semibold">
-                  {item._providerName}
-                </h4>
-                <p className="text-slate-400 text-xs mt-0.5">
-                  {item._serviceType === "Mechanic"
-                    ? item.problemDescription
-                    : `${item.fuelType} — ${item.quantity}L`}
-                </p>
-                <p className="text-slate-600 text-xs mt-1">
-                  {new Date(item.createdAt).toLocaleDateString()}
-                </p>
+        {completedItems.map((item) => {
+          const existing = getFeedbackForRequest(item._id);
+          return (
+            <div
+              key={item._id}
+              className="glass rounded-xl p-5 border border-white/8"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-white font-semibold">
+                    {item._providerName}
+                  </h4>
+                  <p className="text-slate-400 text-xs mt-0.5">
+                    {item._serviceType === "Mechanic"
+                      ? item.problemDescription
+                      : `${item.fuelType} — ${item.quantity}L`}
+                  </p>
+                  <p className="text-slate-600 text-xs mt-1">
+                    {new Date(item.createdAt).toLocaleDateString()}
+                  </p>
+                  {existing && (
+                    <div className="flex items-center gap-1 mt-1.5">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <Star
+                          key={s}
+                          className={`w-3 h-3 ${s <= existing.rating ? "fill-amber-500 text-amber-500" : "text-slate-700"}`}
+                        />
+                      ))}
+                      <span className="text-slate-500 text-xs ml-1">
+                        — Reviewed
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={() => {
+                    setFeedbackForm(item);
+                    if (existing) {
+                      setIsEditing(true);
+                      setEditingFeedbackId(existing._id);
+                      setRating(existing.rating);
+                      setComment(existing.comment || "");
+                    } else {
+                      setIsEditing(false);
+                      setEditingFeedbackId(null);
+                      setRating(5);
+                      setComment("");
+                    }
+                    setSuccess("");
+                  }}
+                  className={`flex items-center gap-1.5 ${existing ? "bg-blue-500/10 text-blue-400 border-blue-500/20 hover:bg-blue-500/20" : "bg-amber-500/10 text-amber-400 border-amber-500/20 hover:bg-amber-500/20"} border px-4 py-2 rounded-xl text-sm font-medium transition-colors`}
+                >
+                  <Star className="w-4 h-4" />{" "}
+                  {existing ? "Update Review" : "Write Review"}
+                </button>
               </div>
-              <button
-                onClick={() => {
-                  setFeedbackForm(item);
-                  setRating(5);
-                  setComment("");
-                  setSuccess("");
-                }}
-                className="flex items-center gap-1.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 px-4 py-2 rounded-xl text-sm font-medium hover:bg-amber-500/20 transition-colors"
-              >
-                <Star className="w-4 h-4" /> Write Review
-              </button>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Feedback Modal */}
@@ -1143,7 +1495,7 @@ function FeedbackTab({ token }) {
             >
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-white font-semibold">
-                  Review {feedbackForm._providerName}
+                  {isEditing ? "Update" : "Review"} {feedbackForm._providerName}
                 </h3>
                 <button
                   onClick={() => setFeedbackForm(null)}
@@ -1193,13 +1545,143 @@ function FeedbackTab({ token }) {
                   ) : (
                     <Send className="w-4 h-4" />
                   )}
-                  {sending ? "Submitting..." : "Submit Review"}
+                  {sending
+                    ? "Submitting..."
+                    : isEditing
+                      ? "Update Review"
+                      : "Submit Review"}
                 </button>
               </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+/* ────────────────────────────────────────────── */
+/*  Profile Tab                                   */
+/* ────────────────────────────────────────────── */
+function ProfileTab({ token }) {
+  const [profile, setProfile] = useState(null);
+  const [form, setForm] = useState({ name: "", phone: "", address: "" });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await userAPI.getProfile(token);
+        setProfile(data);
+        setForm({
+          name: data.name || "",
+          phone: data.phone || "",
+          address: data.address || "",
+        });
+      } catch (e) {
+        setMsg({ type: "error", text: e.message });
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [token]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    setMsg(null);
+    try {
+      const { data } = await userAPI.updateProfile(token, form);
+      setProfile(data);
+      setMsg({ type: "success", text: "Profile updated successfully!" });
+    } catch (e) {
+      setMsg({ type: "error", text: e.message });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading)
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 text-amber-400 animate-spin" />
+      </div>
+    );
+
+  return (
+    <div className="max-w-lg mx-auto space-y-6">
+      {/* Avatar / header */}
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-3xl font-bold text-slate-950">
+          {profile?.name?.charAt(0)?.toUpperCase() || "U"}
+        </div>
+        <p className="text-slate-400 text-sm">{profile?.email}</p>
+      </div>
+
+      {/* Editable fields */}
+      <div className="space-y-4">
+        <label className="block">
+          <span className="text-sm text-slate-400 mb-1 block">Name</span>
+          <input
+            type="text"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            className="w-full bg-slate-800/60 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:border-amber-500/50 outline-none"
+          />
+        </label>
+
+        <label className="block">
+          <span className="text-sm text-slate-400 mb-1 block">Phone</span>
+          <input
+            type="text"
+            value={form.phone}
+            onChange={(e) => setForm({ ...form, phone: e.target.value })}
+            className="w-full bg-slate-800/60 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:border-amber-500/50 outline-none"
+          />
+        </label>
+
+        <label className="block">
+          <span className="text-sm text-slate-400 mb-1 block">Address</span>
+          <textarea
+            value={form.address}
+            onChange={(e) => setForm({ ...form, address: e.target.value })}
+            className="w-full bg-slate-800/60 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:border-amber-500/50 outline-none resize-none h-24"
+          />
+        </label>
+      </div>
+
+      {/* Status message */}
+      {msg && (
+        <div
+          className={`flex items-center gap-2 text-sm px-4 py-2.5 rounded-xl ${
+            msg.type === "success"
+              ? "bg-emerald-500/10 text-emerald-400"
+              : "bg-red-500/10 text-red-400"
+          }`}
+        >
+          {msg.type === "success" ? (
+            <CheckCircle2 className="w-4 h-4" />
+          ) : (
+            <AlertCircle className="w-4 h-4" />
+          )}
+          {msg.text}
+        </div>
+      )}
+
+      {/* Save button */}
+      <button
+        onClick={handleSave}
+        disabled={saving}
+        className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold py-2.5 rounded-xl transition-all disabled:opacity-50"
+      >
+        {saving ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : (
+          <Save className="w-4 h-4" />
+        )}
+        {saving ? "Saving..." : "Save Changes"}
+      </button>
     </div>
   );
 }

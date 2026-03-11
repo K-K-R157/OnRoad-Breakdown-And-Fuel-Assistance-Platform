@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Fuel,
@@ -59,7 +60,17 @@ const STATUS_FLOW = [
 export default function FuelStationDashboard() {
   const { session } = useAuth();
   const token = session?.token;
-  const [activeTab, setActiveTab] = useState("bookings");
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState(() => {
+    const p = new URLSearchParams(location.search);
+    return p.get("tab") || "bookings";
+  });
+
+  useEffect(() => {
+    const tab =
+      new URLSearchParams(location.search).get("tab") || location.state?.tab;
+    if (tab) setActiveTab(tab);
+  }, [location]);
 
   return (
     <main className="min-h-screen bg-slate-950 pt-20 pb-12 px-4">
@@ -781,7 +792,6 @@ function FuelTypesTab({ token }) {
                 <option value="Petrol">Petrol</option>
                 <option value="Diesel">Diesel</option>
                 <option value="CNG">CNG</option>
-                <option value="Electric">Electric</option>
               </select>
               <div className="flex-1">
                 <div className="relative">

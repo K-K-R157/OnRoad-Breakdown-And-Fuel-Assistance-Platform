@@ -128,7 +128,7 @@ const TESTIMONIALS = [
 ];
 
 const STATS = [
-  { value: "50K+", label: "Drivers Helped" },
+  { value: "50K+", label: "Users Helped" },
   { value: "500+", label: "Cities Covered" },
   { value: "< 15min", label: "Avg Response" },
   { value: "4.9★", label: "App Rating" },
@@ -400,7 +400,7 @@ export default function LandingPage() {
               Testimonials
             </span>
             <h2 className="font-display font-bold text-3xl sm:text-4xl text-white mt-3">
-              Real drivers, real stories
+              Real users, real stories
             </h2>
           </Reveal>
           <div className="grid sm:grid-cols-3 gap-6">

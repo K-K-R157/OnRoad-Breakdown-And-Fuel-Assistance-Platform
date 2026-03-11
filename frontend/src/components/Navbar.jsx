@@ -2,10 +2,18 @@
  * Navbar – Sticky top navigation bar.
  * Dark navy background with amber accent. Collapses to hamburger on mobile.
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Zap, Menu, X, ChevronRight, LogOut, User } from "lucide-react";
+import {
+  Zap,
+  Menu,
+  X,
+  ChevronRight,
+  LogOut,
+  User,
+  ChevronDown,
+} from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 const ROLE_LINKS = {
@@ -27,14 +35,23 @@ const ROLE_LINKS = {
   ],
 };
 
+const PROFILE_NAV = {
+  user: { path: "/dashboard?tab=profile", state: { tab: "profile" } },
+  mechanic: { path: "/mechanic?tab=profile", state: { tab: "profile" } },
+  fuelStation: { path: "/fuel-station?tab=station", state: { tab: "station" } },
+  admin: { path: "/admin?tab=profile", state: { tab: "profile" } },
+};
+
 const GUEST_LINKS = [{ label: "Home", to: "/" }];
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { session, logout } = useAuth();
+  const dropdownRef = useRef(null);
 
   const role = session?.user?.role;
   const navLinks = role ? ROLE_LINKS[role] || GUEST_LINKS : GUEST_LINKS;
@@ -47,7 +64,20 @@ export default function Navbar() {
   }, []);
 
   /* Close mobile menu on route change */
-  useEffect(() => setMenuOpen(false), [location.pathname]);
+  useEffect(() => {
+    setMenuOpen(false);
+    setProfileOpen(false);
+  }, [location.pathname, location.search]);
+
+  /* Close profile dropdown on outside click */
+  useEffect(() => {
+    const handler = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target))
+        setProfileOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   return (
     <header
@@ -104,20 +134,57 @@ export default function Navbar() {
         <div className="flex items-center gap-3">
           {session ? (
             <>
-              <span className="hidden sm:flex items-center gap-1.5 text-slate-300 text-sm">
-                <User className="w-4 h-4" />
-                {session.user?.name?.split(" ")[0]}
-              </span>
-              <button
-                onClick={() => {
-                  logout();
-                  navigate("/");
-                }}
-                className="hidden sm:flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 border border-white/10 text-slate-300 hover:text-white font-medium text-sm px-4 py-2 rounded-xl transition-all"
-              >
-                <LogOut className="w-4 h-4" />
-                Logout
-              </button>
+              {/* ── Profile dropdown ── */}
+              <div className="relative hidden sm:block" ref={dropdownRef}>
+                <button
+                  onClick={() => setProfileOpen((v) => !v)}
+                  className="flex items-center gap-1.5 text-slate-300 hover:text-white text-sm transition-colors px-3 py-2 rounded-xl hover:bg-white/5"
+                >
+                  <div className="w-7 h-7 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-xs font-bold text-amber-400">
+                    {session.user?.name?.charAt(0)?.toUpperCase() || "U"}
+                  </div>
+                  {session.user?.name?.split(" ")[0]}
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 transition-transform ${profileOpen ? "rotate-180" : ""}`}
+                  />
+                </button>
+
+                <AnimatePresence>
+                  {profileOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -6, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -6, scale: 0.95 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 mt-2 w-48 bg-slate-900 border border-white/10 rounded-xl shadow-xl shadow-black/40 overflow-hidden z-50"
+                    >
+                      <button
+                        onClick={() => {
+                          setProfileOpen(false);
+                          const nav = PROFILE_NAV[role] || PROFILE_NAV.user;
+                          navigate(nav.path, { state: nav.state });
+                        }}
+                        className="flex items-center gap-2.5 w-full px-4 py-3 text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
+                      >
+                        <User className="w-4 h-4" />
+                        My Profile
+                      </button>
+                      <div className="border-t border-white/5" />
+                      <button
+                        onClick={() => {
+                          setProfileOpen(false);
+                          logout();
+                          navigate("/");
+                        }}
+                        className="flex items-center gap-2.5 w-full px-4 py-3 text-sm text-red-400 hover:text-red-300 hover:bg-white/5 transition-colors"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        Logout
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </>
           ) : (
             <Link
@@ -167,16 +234,28 @@ export default function Navbar() {
               </Link>
             ))}
             {session ? (
-              <button
-                onClick={() => {
-                  logout();
-                  navigate("/");
-                  setMenuOpen(false);
-                }}
-                className="block w-full mt-2 text-center bg-slate-800 border border-white/10 text-slate-300 font-semibold px-4 py-3 rounded-xl hover:bg-slate-700 transition-colors"
-              >
-                Logout ({session.user?.name?.split(" ")[0]})
-              </button>
+              <>
+                <button
+                  onClick={() => {
+                    const nav = PROFILE_NAV[role] || PROFILE_NAV.user;
+                    navigate(nav.path, { state: nav.state });
+                    setMenuOpen(false);
+                  }}
+                  className="block w-full text-left px-4 py-3 rounded-xl text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
+                >
+                  My Profile
+                </button>
+                <button
+                  onClick={() => {
+                    logout();
+                    navigate("/");
+                    setMenuOpen(false);
+                  }}
+                  className="block w-full mt-2 text-center bg-slate-800 border border-white/10 text-slate-300 font-semibold px-4 py-3 rounded-xl hover:bg-slate-700 transition-colors"
+                >
+                  Logout ({session.user?.name?.split(" ")[0]})
+                </button>
+              </>
             ) : (
               <Link
                 to="/login"

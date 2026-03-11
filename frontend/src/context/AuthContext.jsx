@@ -15,7 +15,14 @@
  *        const { session } = useAuth();
  *        const data = await someAPI(session.token, ...);
  */
-import { createContext, useContext, useState, useEffect, useMemo } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+} from "react";
 import { io } from "socket.io-client";
 
 const AuthContext = createContext(null);
@@ -48,20 +55,33 @@ export function AuthProvider({ children }) {
   };
 
   // ── Socket.IO connection (auto-join room when logged in) ──
+  const socketRef = useRef(null);
+
   useEffect(() => {
-    if (!session?.token || !session?.user?._id) return;
+    if (!session?.token || !session?.user?._id) {
+      // Disconnect if session is gone
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
+      return;
+    }
+
+    // Only connect once per session
+    if (socketRef.current) return;
 
     const socket = io(SOCKET_URL, { transports: ["websocket"] });
+    socketRef.current = socket;
 
     socket.emit("join-room", {
       role: session.user.role,
       userId: session.user._id,
     });
 
-    // You can listen for real-time events here globally
-    // e.g. socket.on("request:status-updated", handler)
-
-    return () => socket.disconnect();
+    return () => {
+      socket.disconnect();
+      socketRef.current = null;
+    };
   }, [session]);
 
   const value = useMemo(() => ({ session, login, logout }), [session]);

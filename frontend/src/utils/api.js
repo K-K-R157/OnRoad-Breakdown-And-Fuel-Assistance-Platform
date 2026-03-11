@@ -49,9 +49,12 @@ export const authAPI = {
   getMe: (token) => request("/auth/me", { token }),
 };
 
-/* ─── User (stranded driver) ─── */
+/* ─── User (stranded user) ─── */
 export const userAPI = {
   getProfile: (token) => request("/users/me", { token }),
+
+  updateProfile: (token, body) =>
+    request("/users/me", { method: "PUT", token, body }),
 
   // Create a mechanic assistance request
   createMechanicRequest: (token, body) =>
@@ -129,6 +132,11 @@ export const fuelStationAPI = {
 
 /* ─── Admin ─── */
 export const adminAPI = {
+  getProfile: (token) => request("/admin/me", { token }),
+
+  updateProfile: (token, body) =>
+    request("/admin/me", { method: "PUT", token, body }),
+
   getDashboard: (token) => request("/admin/dashboard", { token }),
 
   getPendingMechanics: (token) =>
@@ -150,12 +158,35 @@ export const adminAPI = {
       token,
       body: { action },
     }),
+
+  getAllUsers: (token) => request("/admin/users", { token }),
+
+  getAllMechanics: (token) => request("/admin/mechanics/all", { token }),
+
+  getAllFuelStations: (token) => request("/admin/fuel-stations/all", { token }),
+
+  revokeMechanic: (token, id) =>
+    request(`/admin/mechanics/${id}/revoke`, { method: "PATCH", token }),
+
+  revokeFuelStation: (token, id) =>
+    request(`/admin/fuel-stations/${id}/revoke`, { method: "PATCH", token }),
+
+  getActiveMechanicRequests: (token) =>
+    request("/admin/mechanic-requests/active", { token }),
+
+  getActiveFuelRequests: (token) =>
+    request("/admin/fuel-requests/active", { token }),
+
+  getAllFeedback: (token) => request("/admin/feedback/all", { token }),
 };
 
 /* ─── Feedback ─── */
 export const feedbackAPI = {
   create: (token, body) =>
     request("/feedback", { method: "POST", token, body }),
+
+  update: (token, id, body) =>
+    request(`/feedback/${id}`, { method: "PUT", token, body }),
 
   getMyFeedback: (token) => request("/feedback/me", { token }),
 
