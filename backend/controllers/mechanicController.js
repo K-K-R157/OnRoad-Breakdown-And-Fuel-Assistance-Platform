@@ -8,12 +8,10 @@ exports.getNearbyMechanics = async (req, res) => {
     const latitude = Number(req.query.latitude);
 
     if (Number.isNaN(longitude) || Number.isNaN(latitude)) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Valid longitude and latitude are required",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Valid longitude and latitude are required",
+      });
     }
 
     const mechanics = await Mechanic.findNearby(
@@ -52,6 +50,7 @@ exports.updateMechanicProfile = async (req, res) => {
       "experience",
       "availability",
       "profilePicture",
+      "serviceRadius",
     ];
     const updates = {};
 

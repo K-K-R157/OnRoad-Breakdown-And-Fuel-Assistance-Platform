@@ -5,6 +5,7 @@ const {
   getMyFeedback,
   toggleHelpfulVote,
   respondToFeedback,
+  updateFeedback,
 } = require("../controllers/feedbackController");
 const { protect, authorize } = require("../middleware/auth");
 
@@ -14,6 +15,7 @@ router.get("/provider/:providerId", getProviderFeedback);
 
 router.use(protect);
 router.post("/", authorize("user"), createFeedback);
+router.put("/:id", authorize("user"), updateFeedback);
 router.get("/me", authorize("user"), getMyFeedback);
 router.post("/:id/helpful", toggleHelpfulVote);
 router.post(

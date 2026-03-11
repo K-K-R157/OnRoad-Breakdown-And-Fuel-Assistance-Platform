@@ -16,7 +16,7 @@ const fuelRequestSchema = new mongoose.Schema(
     fuelType: {
       type: String,
       required: [true, "Please specify fuel type"],
-      enum: ["Petrol", "Diesel", "CNG", "Electric"],
+      enum: ["Petrol", "Diesel", "CNG"],
       trim: true,
     },
     quantity: {
@@ -51,7 +51,7 @@ const fuelRequestSchema = new mongoose.Schema(
     },
     address: {
       type: String,
-      required: [true, "Please provide delivery address"],
+      default: "GPS Location",
       trim: true,
     },
     pricePerLiter: {

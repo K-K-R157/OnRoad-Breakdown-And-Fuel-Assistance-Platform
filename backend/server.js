@@ -69,7 +69,7 @@ io.on("connection", (socket) => {
   });
 
   // ── Live location tracking ──
-  // Mechanic/delivery driver sends GPS coordinates periodically.
+  // Mechanic/delivery service sends GPS coordinates periodically.
   // Relayed to the user so they see the provider moving on the map.
   socket.on("location:update", ({ requestId, userId, coords }) => {
     if (requestId && userId && coords) {

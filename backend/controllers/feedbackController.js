@@ -142,6 +142,35 @@ exports.toggleHelpfulVote = async (req, res) => {
   }
 };
 
+exports.updateFeedback = async (req, res) => {
+  try {
+    const feedback = await Feedback.findById(req.params.id);
+    if (!feedback) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Feedback not found" });
+    }
+
+    if (feedback.user.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only update your own feedback",
+      });
+    }
+
+    const { rating, comment, categories, isPublic } = req.body;
+    if (rating !== undefined) feedback.rating = rating;
+    if (comment !== undefined) feedback.comment = comment;
+    if (categories !== undefined) feedback.categories = categories;
+    if (isPublic !== undefined) feedback.isPublic = isPublic;
+
+    await feedback.save();
+    res.status(200).json({ success: true, data: feedback });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
 exports.respondToFeedback = async (req, res) => {
   try {
     const { response } = req.body;

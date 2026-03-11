@@ -313,7 +313,6 @@ async function seed() {
         fuelTypes: [
           { type: "Petrol", price: 102.86, available: true },
           { type: "Diesel", price: 88.94, available: true },
-          { type: "Electric", price: 12.0, available: true },
         ],
         licenseNumber: "FUEL-AS-002",
         licenseCopy: "license-indianoil.pdf",
@@ -694,7 +693,7 @@ async function seed() {
         requestType: "FuelRequest",
         rating: 5,
         comment:
-          "Fast delivery via UPI payment, fuel quantity was exact. Driver was polite and helpful.",
+          "Fast delivery via UPI payment, fuel quantity was exact. User was polite and helpful.",
         categories: {
           timeliness: 5,
           professionalism: 5,

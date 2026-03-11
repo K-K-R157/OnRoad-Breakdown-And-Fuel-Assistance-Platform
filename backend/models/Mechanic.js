@@ -88,6 +88,11 @@ const mechanicSchema = new mongoose.Schema(
       type: String,
       default: "default-mechanic.jpg",
     },
+    serviceRadius: {
+      type: Number,
+      min: 0,
+      default: 10, // in kilometers
+    },
     availability: {
       type: Boolean,
       default: true,
