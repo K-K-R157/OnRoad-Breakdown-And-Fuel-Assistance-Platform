@@ -19,6 +19,7 @@ exports.getNearbyMechanics = async (req, res) => {
       latitude,
       Number(req.query.maxDistance) || 5000,
       {
+        mechanicType: req.query.mechanicType,
         service: req.query.service,
         minRating: req.query.minRating
           ? Number(req.query.minRating)
@@ -46,6 +47,7 @@ exports.updateMechanicProfile = async (req, res) => {
       "phone",
       "address",
       "location",
+      "mechanicType",
       "servicesOffered",
       "experience",
       "availability",

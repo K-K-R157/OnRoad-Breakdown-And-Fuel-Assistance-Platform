@@ -93,6 +93,37 @@ const URGENCY_LABELS = [
   "Critical – Emergency!",
 ];
 
+// Map vehicle type to mechanic type for filtering
+const VEHICLE_TO_MECHANIC_TYPE = {
+  car: "car",
+  truck: "bus_truck",
+  bike: "bike",
+};
+
+const MECHANIC_TYPES = [
+  {
+    id: "car",
+    label: "Car Mechanic",
+    emoji: "🚗",
+    desc: "Sedan, SUV, Hatchback specialists",
+    color: "blue",
+  },
+  {
+    id: "bus_truck",
+    label: "Bus/Truck Mechanic",
+    emoji: "🚛",
+    desc: "Heavy vehicle specialists",
+    color: "orange",
+  },
+  {
+    id: "bike",
+    label: "Bike Mechanic",
+    emoji: "🏍️",
+    desc: "Motorcycle, Scooter specialists",
+    color: "purple",
+  },
+];
+
 const colorMap = {
   blue: "border-blue-500/50   bg-blue-500/10   text-blue-400",
   red: "border-red-500/50    bg-red-500/10    text-red-400",
@@ -122,23 +153,33 @@ const slideVariants = {
 
 /* ─── Step sub-components ─── */
 
-// Step 1
+// Step 1: Vehicle Type + Mechanic Type Selection
 function VehicleStep({ form, setForm }) {
+  // Auto-set mechanic type when vehicle type changes
+  const handleVehicleSelect = (vehicleId) => {
+    const defaultMechanicType = VEHICLE_TO_MECHANIC_TYPE[vehicleId] || "car";
+    setForm((f) => ({
+      ...f,
+      vehicleType: vehicleId,
+      mechanicType: f.mechanicType || defaultMechanicType,
+    }));
+  };
+
   return (
     <div>
       <h2 className="text-2xl font-display font-bold text-white mb-2">
         What are you driving?
       </h2>
-      <p className="text-slate-400 mb-8 text-sm">
+      <p className="text-slate-400 mb-6 text-sm">
         Select your vehicle type to get matched with the right provider.
       </p>
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-4 mb-8">
         {VEHICLE_TYPES.map(({ id, label, icon, desc }) => {
           const active = form.vehicleType === id;
           return (
             <button
               key={id}
-              onClick={() => setForm((f) => ({ ...f, vehicleType: id }))}
+              onClick={() => handleVehicleSelect(id)}
               className={`relative flex flex-col items-center gap-3 p-5 rounded-2xl border-2 transition-all duration-200 cursor-pointer ${
                 active
                   ? "border-amber-500 bg-amber-500/10 shadow-lg shadow-amber-500/20"
@@ -164,6 +205,65 @@ function VehicleStep({ form, setForm }) {
             </button>
           );
         })}
+      </div>
+
+      {/* Mechanic Type Selection */}
+      <div className="border-t border-white/10 pt-6">
+        <h3 className="text-lg font-semibold text-white mb-2 flex items-center gap-2">
+          <Wrench className="w-5 h-5 text-amber-400" />
+          Select Mechanic Type
+        </h3>
+        <p className="text-slate-400 mb-4 text-sm">
+          Choose the type of mechanic you need (auto-selected based on vehicle).
+        </p>
+        <div className="grid grid-cols-3 gap-3">
+          {MECHANIC_TYPES.map(({ id, label, emoji, desc, color }) => {
+            const active = form.mechanicType === id;
+            const colorClasses = {
+              blue: active
+                ? "border-blue-500 bg-blue-500/10 shadow-blue-500/20"
+                : "border-white/10 bg-slate-800/60 hover:border-blue-500/30",
+              orange: active
+                ? "border-orange-500 bg-orange-500/10 shadow-orange-500/20"
+                : "border-white/10 bg-slate-800/60 hover:border-orange-500/30",
+              purple: active
+                ? "border-purple-500 bg-purple-500/10 shadow-purple-500/20"
+                : "border-white/10 bg-slate-800/60 hover:border-purple-500/30",
+            };
+            return (
+              <button
+                key={id}
+                onClick={() => setForm((f) => ({ ...f, mechanicType: id }))}
+                className={`relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all duration-200 cursor-pointer ${
+                  colorClasses[color]
+                } ${active ? "shadow-lg" : ""}`}
+              >
+                {active && (
+                  <span className="absolute top-2 right-2">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  </span>
+                )}
+                <span className="text-2xl">{emoji}</span>
+                <div className="text-center">
+                  <p
+                    className={`font-medium text-sm ${
+                      active
+                        ? color === "blue"
+                          ? "text-blue-400"
+                          : color === "orange"
+                          ? "text-orange-400"
+                          : "text-purple-400"
+                        : "text-white"
+                    }`}
+                  >
+                    {label}
+                  </p>
+                  <p className="text-slate-500 text-[10px] mt-0.5">{desc}</p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -405,9 +505,14 @@ function ReviewStep({ form }) {
     ISSUE_TYPES.find((i) => i.id === form.issueType)?.label ?? "—";
   const vehicleLabel =
     VEHICLE_TYPES.find((v) => v.id === form.vehicleType)?.label ?? "—";
+  const mechanicTypeData = MECHANIC_TYPES.find((t) => t.id === form.mechanicType);
+  const mechanicTypeLabel = mechanicTypeData
+    ? `${mechanicTypeData.emoji} ${mechanicTypeData.label}`
+    : "—";
 
   const rows = [
     { label: "Vehicle", value: vehicleLabel },
+    { label: "Mechanic Type", value: mechanicTypeLabel },
     {
       label: "Location",
       value: form.locationLabel || `${form.lat}, ${form.lng}` || "—",
@@ -472,6 +577,7 @@ export default function BreakdownForm() {
 
   const [form, setForm] = useState({
     vehicleType: "",
+    mechanicType: "",
     locationLabel: "",
     lat: null,
     lng: null,
@@ -483,7 +589,7 @@ export default function BreakdownForm() {
   });
 
   const canNext = useCallback(() => {
-    if (step === 0) return !!form.vehicleType;
+    if (step === 0) return !!form.vehicleType && !!form.mechanicType;
     if (step === 1) return !!(form.locationLabel || form.lat);
     if (step === 2) return !!form.issueType;
     return true;
@@ -520,13 +626,18 @@ export default function BreakdownForm() {
         });
       } else {
         // For mechanic requests, get nearby mechanics first, then pick one
+        // Filter by mechanic type based on user's selection
         let mechanicId;
         if (form.lat && form.lng) {
           try {
-            const nearby = await mechanicAPI.getNearby(token, {
-              latitude: form.lat,
-              longitude: form.lng,
-            });
+            // Use user-selected mechanicType directly
+            const mechanicType = form.mechanicType || "car";
+            const nearby = await mechanicAPI.getNearby(
+              parseFloat(form.lng),
+              parseFloat(form.lat),
+              10000,
+              { mechanicType },
+            );
             if (nearby.data?.length) mechanicId = nearby.data[0]._id;
           } catch {
             // No nearby mechanics – still submit without a specific mechanic
@@ -536,10 +647,13 @@ export default function BreakdownForm() {
         const issueLabel =
           ISSUE_TYPES.find((i) => i.id === form.issueType)?.label ??
           form.issueType;
+        const mechanicTypeLabel =
+          MECHANIC_TYPES.find((t) => t.id === form.mechanicType)?.label ||
+          form.mechanicType;
         await userAPI.createMechanicRequest(token, {
           mechanicId,
           problemDescription:
-            `${issueLabel} – ${form.vehicleType} – urgency ${form.urgency}. ${form.notes || ""}`.trim(),
+            `${issueLabel} – ${form.vehicleType} – ${mechanicTypeLabel} – urgency ${form.urgency}. ${form.notes || ""}`.trim(),
           address: form.locationLabel || `${form.lat}, ${form.lng}`,
           location: loc,
         });

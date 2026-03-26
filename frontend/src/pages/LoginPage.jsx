@@ -86,6 +86,7 @@ export default function LoginPage() {
     phone: "",
     address: "",
     role: "user",
+    mechanicType: "car",
     servicesOffered: "",
     experience: "",
     licenseNumber: "",
@@ -139,6 +140,7 @@ export default function LoginPage() {
           address: form.address,
         };
         if (form.role === "mechanic") {
+          payload.mechanicType = form.mechanicType;
           payload.servicesOffered = form.servicesOffered
             .split(",")
             .map((s) => s.trim())
@@ -363,6 +365,22 @@ export default function LoginPage() {
                         <p className="text-amber-400 text-xs font-semibold mb-3 flex items-center gap-1.5">
                           <Wrench className="w-3.5 h-3.5" /> Mechanic Details
                         </p>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-slate-400 text-xs font-medium">
+                          Mechanic Type
+                        </label>
+                        <select
+                          value={form.mechanicType}
+                          onChange={(e) => set("mechanicType", e.target.value)}
+                          className="w-full bg-slate-800/80 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 outline-none transition-colors"
+                        >
+                          <option value="car">🚗 Car Mechanic</option>
+                          <option value="bus_truck">
+                            🚛 Bus/Truck Mechanic
+                          </option>
+                          <option value="bike">🏍️ Bike Mechanic</option>
+                        </select>
                       </div>
                       <InputField
                         icon={<Wrench className="w-4 h-4" />}

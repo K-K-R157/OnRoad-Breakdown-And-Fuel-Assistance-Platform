@@ -59,6 +59,15 @@ const mechanicSchema = new mongoose.Schema(
         },
       },
     },
+    mechanicType: {
+      type: String,
+      enum: {
+        values: ["car", "bus_truck", "bike"],
+        message: "Mechanic type must be car, bus_truck, or bike",
+      },
+      required: [true, "Please specify mechanic type"],
+      default: "car",
+    },
     servicesOffered: {
       type: [String],
       required: [true, "Please specify at least one service"],
@@ -136,6 +145,7 @@ mechanicSchema.index({ location: "2dsphere" });
 mechanicSchema.index({ isApproved: 1, availability: 1 });
 mechanicSchema.index({ rating: -1 });
 mechanicSchema.index({ email: 1 });
+mechanicSchema.index({ mechanicType: 1 });
 
 mechanicSchema.pre("save", async function () {
   if (!this.isModified("password")) return;
@@ -183,6 +193,10 @@ mechanicSchema.statics.findNearby = function (
     isApproved: true,
     availability: true,
   };
+
+  if (options.mechanicType) {
+    query.mechanicType = options.mechanicType;
+  }
 
   if (options.service) {
     query.servicesOffered = { $in: [options.service] };

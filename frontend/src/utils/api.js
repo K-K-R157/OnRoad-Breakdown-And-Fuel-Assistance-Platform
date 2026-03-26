@@ -81,10 +81,13 @@ export const userAPI = {
 
 /* ─── Mechanics ─── */
 export const mechanicAPI = {
-  getNearby: (lng, lat, maxDistance = 10000) =>
-    request(
-      `/mechanics/nearby?longitude=${lng}&latitude=${lat}&maxDistance=${maxDistance}`,
-    ),
+  getNearby: (lng, lat, maxDistance = 10000, filters = {}) => {
+    let url = `/mechanics/nearby?longitude=${lng}&latitude=${lat}&maxDistance=${maxDistance}`;
+    if (filters.mechanicType) url += `&mechanicType=${filters.mechanicType}`;
+    if (filters.service) url += `&service=${filters.service}`;
+    if (filters.minRating) url += `&minRating=${filters.minRating}`;
+    return request(url);
+  },
 
   getProfile: (token) => request("/mechanics/me", { token }),
 

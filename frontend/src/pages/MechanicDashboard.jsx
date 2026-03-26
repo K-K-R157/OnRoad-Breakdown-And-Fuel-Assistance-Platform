@@ -481,6 +481,7 @@ function ProfileTab({ token }) {
           name: res.data.name || "",
           phone: res.data.phone || "",
           address: res.data.address || "",
+          mechanicType: res.data.mechanicType || "car",
           servicesOffered: (res.data.servicesOffered || []).join(", "),
           experience: res.data.experience || 0,
           availability: res.data.availability !== false,
@@ -505,6 +506,7 @@ function ProfileTab({ token }) {
         name: editForm.name,
         phone: editForm.phone,
         address: editForm.address,
+        mechanicType: editForm.mechanicType,
         servicesOffered: editForm.servicesOffered
           .split(",")
           .map((s) => s.trim())
@@ -600,6 +602,22 @@ function ProfileTab({ token }) {
               }
               className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:border-emerald-500/50 outline-none"
             />
+          </div>
+          <div>
+            <label className="text-slate-400 text-xs mb-1 block">
+              Mechanic Type
+            </label>
+            <select
+              value={editForm.mechanicType}
+              onChange={(e) =>
+                setEditForm((p) => ({ ...p, mechanicType: e.target.value }))
+              }
+              className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:border-emerald-500/50 outline-none"
+            >
+              <option value="car">🚗 Car Mechanic</option>
+              <option value="bus_truck">🚛 Bus/Truck Mechanic</option>
+              <option value="bike">🏍️ Bike Mechanic</option>
+            </select>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>

@@ -70,12 +70,18 @@ export function AuthProvider({ children }) {
     // Only connect once per session
     if (socketRef.current) return;
 
-    const socket = io(SOCKET_URL, { transports: ["websocket"] });
+    const socket = io(SOCKET_URL, {
+      transports: ["polling", "websocket"],
+      reconnectionAttempts: 5,
+      reconnectionDelay: 3000,
+    });
     socketRef.current = socket;
 
-    socket.emit("join-room", {
-      role: session.user.role,
-      userId: session.user._id,
+    socket.on("connect", () => {
+      socket.emit("join-room", {
+        role: session.user.role,
+        userId: session.user._id,
+      });
     });
 
     return () => {

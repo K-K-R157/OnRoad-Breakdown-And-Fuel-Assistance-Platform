@@ -23,12 +23,28 @@ import {
  * @param {string}   props.distance      – e.g. "1.2 km"
  * @param {string}   props.eta           – e.g. "~8 min"
  * @param {string}   props.type          – "mechanic" | "fuelStation"
+ * @param {string}   [props.mechanicType]– "car" | "bus_truck" | "bike"
  * @param {string[]} props.specialties   – e.g. ["Flat Tyre", "Engine"]
  * @param {boolean}  [props.isOnline]    – Online/available indicator
  * @param {boolean}  [props.highlighted] – Amber highlighted border (nearest)
  * @param {function} [props.onCall]
  * @param {function} [props.onChat]
  */
+
+const MECHANIC_TYPE_LABELS = {
+  car: { label: "Car", emoji: "🚗", color: "bg-blue-500/15 text-blue-400" },
+  bus_truck: {
+    label: "Bus/Truck",
+    emoji: "🚛",
+    color: "bg-orange-500/15 text-orange-400",
+  },
+  bike: {
+    label: "Bike",
+    emoji: "🏍️",
+    color: "bg-purple-500/15 text-purple-400",
+  },
+};
+
 export default function ServiceProviderCard({
   name = "Provider",
   avatar = "??",
@@ -38,6 +54,7 @@ export default function ServiceProviderCard({
   distance = "—",
   eta = "—",
   type = "mechanic",
+  mechanicType,
   specialties = [],
   isOnline = true,
   highlighted = false,
@@ -130,16 +147,28 @@ export default function ServiceProviderCard({
           </div>
         </div>
 
-        {/* Type badge */}
-        <span
-          className={`shrink-0 text-xs font-semibold px-2.5 py-1 rounded-lg ${
-            type === "mechanic"
-              ? "bg-blue-500/15 text-blue-400"
-              : "bg-amber-500/15 text-amber-400"
-          }`}
-        >
-          {type === "mechanic" ? "Mechanic" : "Fuel Station"}
-        </span>
+        {/* Type badge + Mechanic Type */}
+        <div className="shrink-0 flex flex-col gap-1 items-end">
+          <span
+            className={`text-xs font-semibold px-2.5 py-1 rounded-lg ${
+              type === "mechanic"
+                ? "bg-blue-500/15 text-blue-400"
+                : "bg-amber-500/15 text-amber-400"
+            }`}
+          >
+            {type === "mechanic" ? "Mechanic" : "Fuel Station"}
+          </span>
+          {type === "mechanic" &&
+            mechanicType &&
+            MECHANIC_TYPE_LABELS[mechanicType] && (
+              <span
+                className={`text-xs font-semibold px-2.5 py-1 rounded-lg ${MECHANIC_TYPE_LABELS[mechanicType].color}`}
+              >
+                {MECHANIC_TYPE_LABELS[mechanicType].emoji}{" "}
+                {MECHANIC_TYPE_LABELS[mechanicType].label}
+              </span>
+            )}
+        </div>
       </div>
 
       {/* ── Specialties ── */}

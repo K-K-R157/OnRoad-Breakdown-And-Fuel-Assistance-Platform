@@ -16,11 +16,20 @@ import {
   CheckCircle2,
   Circle,
   RefreshCw,
+  Filter,
 } from "lucide-react";
 import ServiceProviderCard from "../components/ServiceProviderCard";
 import LiveTrackingMap from "../components/LiveTrackingMap";
 import { userAPI, mechanicAPI } from "../utils/api";
 import { useAuth } from "../context/AuthContext";
+
+/* ─── Mechanic Type Filter Options ─── */
+const MECHANIC_TYPE_FILTERS = [
+  { id: "", label: "All Types", emoji: "🔧" },
+  { id: "car", label: "Car", emoji: "🚗" },
+  { id: "bus_truck", label: "Bus/Truck", emoji: "🚛" },
+  { id: "bike", label: "Bike", emoji: "🏍️" },
+];
 
 /* ─── Status steps ─── */
 const STATUS_STEPS = [
@@ -57,6 +66,7 @@ const FALLBACK_PROVIDERS = [
     distance: "0.8 km",
     eta: "~6 min",
     type: "mechanic",
+    mechanicType: "car",
     specialties: ["Engine Repair", "Tyre Change", "Battery"],
     isOnline: true,
     highlighted: true,
@@ -83,6 +93,7 @@ const FALLBACK_PROVIDERS = [
     distance: "2.1 km",
     eta: "~18 min",
     type: "mechanic",
+    mechanicType: "bike",
     specialties: ["Flat Tyre", "Jump Start", "Towing"],
     isOnline: true,
     highlighted: false,
@@ -116,12 +127,48 @@ export default function TrackingDashboard() {
   const [providers, setProviders] = useState(FALLBACK_PROVIDERS);
   const [latestRequest, setLatestRequest] = useState(null);
   const [etaSeconds, setEtaSeconds] = useState(0);
+  const [mechanicTypeFilter, setMechanicTypeFilter] = useState("");
   const currentIndex = STATUS_STEPS.findIndex((s) => s.id === status);
 
   // Live location state
   const [userLocation, setUserLocation] = useState(null);
   const [providerLocation, setProviderLocation] = useState(null);
   const [providerName, setProviderName] = useState("Mechanic");
+
+  // Fetch nearby mechanics with filter
+  const fetchNearbyMechanics = useCallback(async (loc, filter = "") => {
+    try {
+      const lng = loc?.lng || 77.5946;
+      const lat = loc?.lat || 12.9716;
+      const filters = filter ? { mechanicType: filter } : {};
+      const nearby = await mechanicAPI.getNearby(lng, lat, 10000, filters);
+      if (nearby.data?.length) {
+        setProviders(
+          nearby.data.map((m, i) => ({
+            id: m._id,
+            name: m.name,
+            avatar:
+              m.name
+                ?.split(" ")
+                .map((w) => w[0])
+                .join("")
+                .slice(0, 2) || "?",
+            rating: m.rating || 4.5,
+            reviewCount: m.totalReviews || 0,
+            distance: "—",
+            eta: "—",
+            type: "mechanic",
+            mechanicType: m.mechanicType,
+            specialties: m.servicesOffered || [],
+            isOnline: m.availability ?? true,
+            highlighted: i === 0,
+          })),
+        );
+      }
+    } catch {
+      // keep fallback
+    }
+  }, []);
 
   // Get the user's current position via browser Geolocation API
   useEffect(() => {
@@ -149,7 +196,14 @@ export default function TrackingDashboard() {
     return () => navigator.geolocation.clearWatch(watchId);
   }, [session?.socket, latestRequest]);
 
-  // Fetch the user's most recent mechanic request + nearby providers
+  // Re-fetch nearby mechanics when filter changes
+  useEffect(() => {
+    if (userLocation) {
+      fetchNearbyMechanics(userLocation, mechanicTypeFilter);
+    }
+  }, [mechanicTypeFilter, userLocation, fetchNearbyMechanics]);
+
+  // Fetch the user's most recent mechanic request
   useEffect(() => {
     if (!token) return;
 
@@ -184,38 +238,6 @@ export default function TrackingDashboard() {
             completed: "arrived",
           };
           setStatus(statusMap[req.status] || "reported");
-        }
-      } catch {
-        // keep fallback
-      }
-
-      // Get nearby mechanics
-      try {
-        const nearby = await mechanicAPI.getNearby(token, {
-          latitude: userLocation?.lat || 12.9716,
-          longitude: userLocation?.lng || 77.5946,
-        });
-        if (nearby.data?.length) {
-          setProviders(
-            nearby.data.map((m, i) => ({
-              id: m._id,
-              name: m.name,
-              avatar:
-                m.name
-                  ?.split(" ")
-                  .map((w) => w[0])
-                  .join("")
-                  .slice(0, 2) || "?",
-              rating: m.rating || 4.5,
-              reviewCount: m.totalReviews || 0,
-              distance: "—",
-              eta: "—",
-              type: "mechanic",
-              specialties: m.servicesOffered || [],
-              isOnline: m.availability ?? true,
-              highlighted: i === 0,
-            })),
-          );
         }
       } catch {
         // keep fallback
@@ -410,10 +432,34 @@ export default function TrackingDashboard() {
                   View all <ChevronRight className="w-3 h-3" />
                 </button>
               </div>
+
+              {/* Mechanic Type Filter */}
+              <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
+                {MECHANIC_TYPE_FILTERS.map((filter) => (
+                  <button
+                    key={filter.id}
+                    onClick={() => setMechanicTypeFilter(filter.id)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
+                      mechanicTypeFilter === filter.id
+                        ? "bg-amber-500 text-slate-950"
+                        : "bg-slate-800/60 border border-white/10 text-slate-400 hover:text-white hover:border-white/20"
+                    }`}
+                  >
+                    <span>{filter.emoji}</span>
+                    {filter.label}
+                  </button>
+                ))}
+              </div>
+
               <div className="space-y-4">
                 {providers.slice(1).map((p) => (
                   <ServiceProviderCard key={p.id} {...p} />
                 ))}
+                {providers.length <= 1 && (
+                  <p className="text-slate-500 text-sm text-center py-4">
+                    No other {mechanicTypeFilter ? `${MECHANIC_TYPE_FILTERS.find(f => f.id === mechanicTypeFilter)?.label.toLowerCase()} ` : ""}mechanics found nearby.
+                  </p>
+                )}
               </div>
             </div>
           </div>

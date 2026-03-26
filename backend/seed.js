@@ -121,6 +121,7 @@ async function seed() {
         phone: "+919845100001",
         address: "Near Kamakhya Temple, Guwahati, Assam",
         location: { type: "Point", coordinates: [91.7052, 26.1663] },
+        mechanicType: "car",
         servicesOffered: [
           "Engine Repair",
           "Tyre Change",
@@ -145,6 +146,7 @@ async function seed() {
         phone: "+919845100002",
         address: "Fancy Bazaar, Guwahati, Assam",
         location: { type: "Point", coordinates: [91.745, 26.181] },
+        mechanicType: "bike",
         servicesOffered: ["Flat Tyre", "Jump Start", "Towing", "Brake Repair"],
         experience: 5,
         licenseNumber: "MECH-AS-002",
@@ -164,6 +166,7 @@ async function seed() {
         phone: "+919845100003",
         address: "Noonmati, Guwahati, Assam",
         location: { type: "Point", coordinates: [91.75, 26.18] },
+        mechanicType: "bus_truck",
         servicesOffered: [
           "Engine Overhaul",
           "Transmission Repair",
@@ -188,6 +191,7 @@ async function seed() {
         phone: "+919845100004",
         address: "North Guwahati, Assam",
         location: { type: "Point", coordinates: [91.71, 26.2] },
+        mechanicType: "bike",
         servicesOffered: ["General Repair", "Tyre Change", "Battery"],
         experience: 3,
         licenseNumber: "MECH-AS-004",
@@ -207,6 +211,7 @@ async function seed() {
         phone: "+919845100005",
         address: "Basistha, Guwahati, Assam",
         location: { type: "Point", coordinates: [91.768, 26.11] },
+        mechanicType: "car",
         servicesOffered: ["Towing", "Flat Tyre", "Oil Change"],
         experience: 2,
         licenseNumber: "MECH-AS-005",
@@ -224,6 +229,7 @@ async function seed() {
         phone: "+919845100006",
         address: "Maligaon, Guwahati, Assam",
         location: { type: "Point", coordinates: [91.715, 26.175] },
+        mechanicType: "bus_truck",
         servicesOffered: [
           "Engine Repair",
           "Tyre Change",
@@ -248,6 +254,7 @@ async function seed() {
         phone: "+919845100007",
         address: "Ganeshguri, Guwahati, Assam",
         location: { type: "Point", coordinates: [91.772, 26.152] },
+        mechanicType: "car",
         servicesOffered: [
           "Flat Tyre",
           "Brake Repair",

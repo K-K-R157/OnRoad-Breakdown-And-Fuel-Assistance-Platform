@@ -62,6 +62,18 @@ const STATUS_COLORS = {
   delivered: "bg-green-500/10 text-green-400 border-green-500/20",
 };
 
+const MECHANIC_TYPE_OPTIONS = [
+  { id: "", label: "All Types", emoji: "🔧", color: "slate" },
+  { id: "car", label: "Car Mechanic", emoji: "🚗", color: "blue" },
+  {
+    id: "bus_truck",
+    label: "Bus/Truck Mechanic",
+    emoji: "🚛",
+    color: "orange",
+  },
+  { id: "bike", label: "Bike Mechanic", emoji: "🏍️", color: "purple" },
+];
+
 export default function UserDashboard() {
   const { session } = useAuth();
   const token = session?.token;
@@ -151,15 +163,17 @@ function SearchMechanicsTab({ token }) {
   const [manualLat, setManualLat] = useState("");
   const [manualLng, setManualLng] = useState("");
   const [searchRadius, setSearchRadius] = useState(50);
+  const [mechanicType, setMechanicType] = useState("");
 
-  const searchNearby = useCallback(async (lat, lng, radiusKm = 50) => {
+  const searchNearby = useCallback(async (lat, lng, radiusKm = 50, typeFilter = "") => {
     setLoading(true);
     setError("");
     try {
-      const res = await mechanicAPI.getNearby(lng, lat, radiusKm * 1000);
+      const filters = typeFilter ? { mechanicType: typeFilter } : {};
+      const res = await mechanicAPI.getNearby(lng, lat, radiusKm * 1000, filters);
       setMechanics(res.data || []);
       if ((res.data || []).length === 0)
-        setError("No mechanics found nearby. Try increasing the search range.");
+        setError("No mechanics found nearby. Try increasing the search range or changing the mechanic type.");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -173,7 +187,7 @@ function SearchMechanicsTab({ token }) {
         (pos) => {
           const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
           setUserLoc(loc);
-          searchNearby(loc.lat, loc.lng, searchRadius);
+          searchNearby(loc.lat, loc.lng, searchRadius, mechanicType);
         },
         () =>
           setError(
@@ -203,10 +217,10 @@ function SearchMechanicsTab({ token }) {
       return;
     }
     setUserLoc({ lat, lng });
-    searchNearby(lat, lng, searchRadius);
+    searchNearby(lat, lng, searchRadius, mechanicType);
   };
 
-  const handlePhotoChange = (e) => {
+  const handlePhotoChange= (e) => {
     const file = e.target.files?.[0];
     if (file) {
       setVehiclePhoto(file);
@@ -256,7 +270,25 @@ function SearchMechanicsTab({ token }) {
           Share your location to find approved mechanics near you. You can then
           share your problem and send a request.
         </p>
-        <div className="flex flex-wrap gap-3 items-end">
+
+        {/* Mechanic Type Selector */}
+        <div className="flex flex-wrap gap-3 items-end mb-4">
+          <div>
+            <label className="text-slate-400 text-xs mb-1.5 block flex items-center gap-1.5">
+              <Filter className="w-3.5 h-3.5 text-amber-400" /> Mechanic Type
+            </label>
+            <select
+              value={mechanicType}
+              onChange={(e) => setMechanicType(e.target.value)}
+              className="bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-medium focus:border-amber-500/50 outline-none cursor-pointer min-w-[180px]"
+            >
+              {MECHANIC_TYPE_OPTIONS.map((opt) => (
+                <option key={opt.id} value={opt.id}>
+                  {opt.emoji} {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
           <button
             onClick={detectAndSearch}
             disabled={loading}
@@ -373,7 +405,26 @@ function SearchMechanicsTab({ token }) {
                     {m.name?.slice(0, 2).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h4 className="text-white font-semibold">{m.name}</h4>
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-white font-semibold">{m.name}</h4>
+                      {m.mechanicType && (
+                        <span
+                          className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
+                            m.mechanicType === "car"
+                              ? "bg-blue-500/10 text-blue-400"
+                              : m.mechanicType === "bus_truck"
+                              ? "bg-orange-500/10 text-orange-400"
+                              : "bg-purple-500/10 text-purple-400"
+                          }`}
+                        >
+                          {m.mechanicType === "car"
+                            ? "🚗 Car"
+                            : m.mechanicType === "bus_truck"
+                            ? "🚛 Bus/Truck"
+                            : "🏍️ Bike"}
+                        </span>
+                      )}
+                    </div>
                     <div className="flex items-center gap-2 mt-1">
                       <div className="flex items-center gap-0.5">
                         {Array.from({ length: 5 }).map((_, i) => (

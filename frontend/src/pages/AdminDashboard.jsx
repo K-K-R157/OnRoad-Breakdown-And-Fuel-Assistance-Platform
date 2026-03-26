@@ -502,6 +502,23 @@ function MechanicsList({ data, onRevoke, actionLoading }) {
                 >
                   {m.isApproved ? "APPROVED" : "PENDING"}
                 </span>
+                {m.mechanicType && (
+                  <span
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      m.mechanicType === "car"
+                        ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                        : m.mechanicType === "bus_truck"
+                          ? "bg-orange-500/10 text-orange-400 border border-orange-500/20"
+                          : "bg-purple-500/10 text-purple-400 border border-purple-500/20"
+                    }`}
+                  >
+                    {m.mechanicType === "car"
+                      ? "🚗 Car"
+                      : m.mechanicType === "bus_truck"
+                        ? "🚛 Bus/Truck"
+                        : "🏍️ Bike"}
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-3 text-xs text-slate-500 flex-wrap mt-0.5">
                 <span className="flex items-center gap-1">
@@ -645,6 +662,23 @@ function PendingMechanicsList({ data, onReview, actionLoading }) {
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
                     PENDING
                   </span>
+                  {m.mechanicType && (
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        m.mechanicType === "car"
+                          ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                          : m.mechanicType === "bus_truck"
+                            ? "bg-orange-500/10 text-orange-400 border border-orange-500/20"
+                            : "bg-purple-500/10 text-purple-400 border border-purple-500/20"
+                      }`}
+                    >
+                      {m.mechanicType === "car"
+                        ? "🚗 Car"
+                        : m.mechanicType === "bus_truck"
+                          ? "🚛 Bus/Truck"
+                          : "🏍️ Bike"}
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-3 text-xs text-slate-500 flex-wrap mt-0.5">
                   {m.phone && (
@@ -685,8 +719,24 @@ function PendingMechanicsList({ data, onReview, actionLoading }) {
                     <Detail label="Email" value={m.email} />
                     <Detail label="License" value={m.licenseNumber || "N/A"} />
                     <Detail
+                      label="Mechanic Type"
+                      value={
+                        m.mechanicType === "car"
+                          ? "🚗 Car Mechanic"
+                          : m.mechanicType === "bus_truck"
+                            ? "🚛 Bus/Truck Mechanic"
+                            : m.mechanicType === "bike"
+                              ? "🏍️ Bike Mechanic"
+                              : "N/A"
+                      }
+                    />
+                    <Detail
                       label="Services"
-                      value={m.services?.join(", ") || "N/A"}
+                      value={
+                        m.services?.join(", ") ||
+                        m.servicesOffered?.join(", ") ||
+                        "N/A"
+                      }
                     />
                     <Detail
                       label="Experience"
