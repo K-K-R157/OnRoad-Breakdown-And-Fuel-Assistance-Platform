@@ -105,6 +105,7 @@ app.use("/api/auth", require("./routes/auth"));
 app.use("/api/users", require("./routes/user"));
 app.use("/api/mechanics", require("./routes/mechanic"));
 app.use("/api/fuel-stations", require("./routes/fuelStation"));
+app.use("/api/charging-stations", require("./routes/chargingStation"));
 app.use("/api/admin", require("./routes/admin"));
 app.use("/api/feedback", require("./routes/feedback"));
 

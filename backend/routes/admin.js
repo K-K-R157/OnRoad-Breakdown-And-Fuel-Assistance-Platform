@@ -5,13 +5,18 @@ const {
   reviewMechanic,
   getPendingFuelStations,
   reviewFuelStation,
+  getPendingChargingStations,
+  reviewChargingStation,
   getAllUsers,
   getAllMechanics,
   getAllFuelStations,
+  getAllChargingStations,
   revokeMechanic,
   revokeFuelStation,
+  revokeChargingStation,
   getActiveMechanicRequests,
   getActiveFuelRequests,
+  getActiveChargingRequests,
   getAllFeedback,
 } = require("../controllers/adminController");
 const { getProfile, updateProfile } = require("../controllers/userController");
@@ -38,8 +43,14 @@ router.get("/fuel-stations/all", getAllFuelStations);
 router.patch("/fuel-stations/:id/review", reviewFuelStation);
 router.patch("/fuel-stations/:id/revoke", revokeFuelStation);
 
+router.get("/charging-stations/pending", getPendingChargingStations);
+router.get("/charging-stations/all", getAllChargingStations);
+router.patch("/charging-stations/:id/review", reviewChargingStation);
+router.patch("/charging-stations/:id/revoke", revokeChargingStation);
+
 router.get("/mechanic-requests/active", getActiveMechanicRequests);
 router.get("/fuel-requests/active", getActiveFuelRequests);
+router.get("/charging-requests/active", getActiveChargingRequests);
 router.get("/feedback/all", getAllFeedback);
 
 module.exports = router;

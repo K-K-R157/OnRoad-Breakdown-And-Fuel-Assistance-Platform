@@ -1,6 +1,7 @@
 const User = require("../models/User");
 const Mechanic = require("../models/Mechanic");
 const FuelStation = require("../models/FuelStation");
+const ChargingStation = require("../models/ChargingStation");
 const jwt = require("jsonwebtoken");
 
 const generateToken = (id, role) => {
@@ -27,17 +28,23 @@ exports.register = async (req, res) => {
       licenseNumber,
       licenseCopy,
       fuelTypes,
+      chargingTypes,
       openingHours,
       deliveryAvailable,
       deliveryRadius,
       deliveryCharges,
       minimumOrderQuantity,
+      mobileChargingAvailable,
+      serviceRadius,
+      serviceCharges,
+      estimatedResponseTime,
     } = req.body;
 
     const existingMatches = await Promise.all([
       User.findOne({ email }),
       Mechanic.findOne({ email }),
       FuelStation.findOne({ email }),
+      ChargingStation.findOne({ email }),
     ]);
 
     const existingUser = existingMatches.find(Boolean);
@@ -88,6 +95,24 @@ exports.register = async (req, res) => {
         deliveryRadius,
         deliveryCharges,
         minimumOrderQuantity,
+      });
+    } else if (role === "chargingStation") {
+      user = await ChargingStation.create({
+        stationName,
+        ownerName,
+        email,
+        password,
+        phone,
+        address,
+        location: normalizedLocation,
+        chargingTypes,
+        licenseNumber,
+        licenseCopy,
+        openingHours,
+        mobileChargingAvailable,
+        serviceRadius,
+        serviceCharges,
+        estimatedResponseTime,
       });
     } else {
       // Only allow admin creation if an existing admin is making the request
@@ -168,6 +193,7 @@ exports.login = async (req, res) => {
       admin: User,
       mechanic: Mechanic,
       fuelStation: FuelStation,
+      chargingStation: ChargingStation,
     };
 
     let user = null;
@@ -188,6 +214,11 @@ exports.login = async (req, res) => {
         user = await FuelStation.findOne({ email }).select("+password");
         if (user) resolvedRole = "fuelStation";
       }
+
+      if (!user) {
+        user = await ChargingStation.findOne({ email }).select("+password");
+        if (user) resolvedRole = "chargingStation";
+      }
     }
 
     if (!user) {
@@ -207,7 +238,9 @@ exports.login = async (req, res) => {
     }
 
     if (
-      (resolvedRole === "mechanic" || resolvedRole === "fuelStation") &&
+      (resolvedRole === "mechanic" ||
+        resolvedRole === "fuelStation" ||
+        resolvedRole === "chargingStation") &&
       !user.isApproved
     ) {
       return res.status(403).json({

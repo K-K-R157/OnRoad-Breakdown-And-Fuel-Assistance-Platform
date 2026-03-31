@@ -251,8 +251,8 @@ function VehicleStep({ form, setForm }) {
                         ? color === "blue"
                           ? "text-blue-400"
                           : color === "orange"
-                          ? "text-orange-400"
-                          : "text-purple-400"
+                            ? "text-orange-400"
+                            : "text-purple-400"
                         : "text-white"
                     }`}
                   >
@@ -505,7 +505,9 @@ function ReviewStep({ form }) {
     ISSUE_TYPES.find((i) => i.id === form.issueType)?.label ?? "—";
   const vehicleLabel =
     VEHICLE_TYPES.find((v) => v.id === form.vehicleType)?.label ?? "—";
-  const mechanicTypeData = MECHANIC_TYPES.find((t) => t.id === form.mechanicType);
+  const mechanicTypeData = MECHANIC_TYPES.find(
+    (t) => t.id === form.mechanicType,
+  );
   const mechanicTypeLabel = mechanicTypeData
     ? `${mechanicTypeData.emoji} ${mechanicTypeData.label}`
     : "—";

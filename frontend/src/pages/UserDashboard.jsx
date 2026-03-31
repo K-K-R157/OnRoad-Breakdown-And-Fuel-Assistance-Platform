@@ -27,11 +27,15 @@ import {
   User,
   Save,
   Radar,
+  BatteryCharging,
+  Plug,
+  Battery,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import {
   mechanicAPI,
   fuelStationAPI,
+  chargingStationAPI,
   userAPI,
   feedbackAPI,
 } from "../utils/api";
@@ -44,6 +48,11 @@ const TABS = [
     icon: <Wrench className="w-4 h-4" />,
   },
   { id: "fuel", label: "Fuel Stations", icon: <Fuel className="w-4 h-4" /> },
+  {
+    id: "charging",
+    label: "EV Charging",
+    icon: <BatteryCharging className="w-4 h-4" />,
+  },
   { id: "requests", label: "My Requests", icon: <Clock className="w-4 h-4" /> },
   { id: "feedback", label: "Feedback", icon: <Star className="w-4 h-4" /> },
 ];
@@ -134,6 +143,7 @@ export default function UserDashboard() {
           >
             {activeTab === "mechanics" && <SearchMechanicsTab token={token} />}
             {activeTab === "fuel" && <SearchFuelTab token={token} />}
+            {activeTab === "charging" && <SearchChargingTab token={token} />}
             {activeTab === "requests" && <MyRequestsTab token={token} />}
             {activeTab === "feedback" && <FeedbackTab token={token} />}
             {activeTab === "profile" && <ProfileTab token={token} />}
@@ -165,21 +175,31 @@ function SearchMechanicsTab({ token }) {
   const [searchRadius, setSearchRadius] = useState(50);
   const [mechanicType, setMechanicType] = useState("");
 
-  const searchNearby = useCallback(async (lat, lng, radiusKm = 50, typeFilter = "") => {
-    setLoading(true);
-    setError("");
-    try {
-      const filters = typeFilter ? { mechanicType: typeFilter } : {};
-      const res = await mechanicAPI.getNearby(lng, lat, radiusKm * 1000, filters);
-      setMechanics(res.data || []);
-      if ((res.data || []).length === 0)
-        setError("No mechanics found nearby. Try increasing the search range or changing the mechanic type.");
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const searchNearby = useCallback(
+    async (lat, lng, radiusKm = 50, typeFilter = "") => {
+      setLoading(true);
+      setError("");
+      try {
+        const filters = typeFilter ? { mechanicType: typeFilter } : {};
+        const res = await mechanicAPI.getNearby(
+          lng,
+          lat,
+          radiusKm * 1000,
+          filters,
+        );
+        setMechanics(res.data || []);
+        if ((res.data || []).length === 0)
+          setError(
+            "No mechanics found nearby. Try increasing the search range or changing the mechanic type.",
+          );
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
 
   const detectAndSearch = () => {
     if (navigator.geolocation) {
@@ -220,7 +240,7 @@ function SearchMechanicsTab({ token }) {
     searchNearby(lat, lng, searchRadius, mechanicType);
   };
 
-  const handlePhotoChange= (e) => {
+  const handlePhotoChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
       setVehiclePhoto(file);
@@ -413,15 +433,15 @@ function SearchMechanicsTab({ token }) {
                             m.mechanicType === "car"
                               ? "bg-blue-500/10 text-blue-400"
                               : m.mechanicType === "bus_truck"
-                              ? "bg-orange-500/10 text-orange-400"
-                              : "bg-purple-500/10 text-purple-400"
+                                ? "bg-orange-500/10 text-orange-400"
+                                : "bg-purple-500/10 text-purple-400"
                           }`}
                         >
                           {m.mechanicType === "car"
                             ? "🚗 Car"
                             : m.mechanicType === "bus_truck"
-                            ? "🚛 Bus/Truck"
-                            : "🏍️ Bike"}
+                              ? "🚛 Bus/Truck"
+                              : "🏍️ Bike"}
                         </span>
                       )}
                     </div>
@@ -1096,10 +1116,649 @@ function SearchFuelTab({ token }) {
   );
 }
 
+/* ════════════════════════ SEARCH CHARGING TAB ════════════════════════ */
+const VEHICLE_TYPE_OPTIONS = [
+  { id: "", label: "All Vehicle Types", emoji: "⚡" },
+  { id: "2-wheeler", label: "2-Wheeler", emoji: "🛵" },
+  { id: "3-wheeler", label: "3-Wheeler", emoji: "🛺" },
+  { id: "4-wheeler", label: "4-Wheeler", emoji: "🚗" },
+  { id: "commercial", label: "Commercial", emoji: "🚛" },
+];
+
+const CONNECTOR_TYPE_OPTIONS = [
+  { id: "", label: "All Connectors" },
+  { id: "Type2", label: "Type 2 (AC)" },
+  { id: "CCS2", label: "CCS2 (DC Fast)" },
+  { id: "CHAdeMO", label: "CHAdeMO" },
+  { id: "GBT", label: "GB/T" },
+];
+
+const DEFAULT_BATTERY_CAPACITIES = {
+  "2-wheeler": 3,
+  "3-wheeler": 7,
+  "4-wheeler": 50,
+  commercial: 200,
+};
+
+function SearchChargingTab({ token }) {
+  const [stations, setStations] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [userLoc, setUserLoc] = useState(null);
+  const [selectedStation, setSelectedStation] = useState(null);
+  const [showBooking, setShowBooking] = useState(false);
+  const [bookForm, setBookForm] = useState({
+    vehicleType: "4-wheeler",
+    connectorType: "CCS2",
+    currentBatteryPercent: 10,
+    targetBatteryPercent: 80,
+    address: "",
+    paymentMethod: "upi",
+  });
+  const [sending, setSending] = useState(false);
+  const [sentSuccess, setSentSuccess] = useState("");
+  const [manualLat, setManualLat] = useState("");
+  const [manualLng, setManualLng] = useState("");
+  const [searchRadius, setSearchRadius] = useState(20);
+  const [vehicleTypeFilter, setVehicleTypeFilter] = useState("");
+  const [connectorFilter, setConnectorFilter] = useState("");
+
+  const searchNearby = useCallback(
+    async (lat, lng, radiusKm = 20, filters = {}) => {
+      setLoading(true);
+      setError("");
+      try {
+        const res = await chargingStationAPI.getNearby(
+          lng,
+          lat,
+          radiusKm * 1000,
+          {
+            vehicleType: filters.vehicleType || undefined,
+            connectorType: filters.connectorType || undefined,
+            mobileChargingOnly: true,
+          },
+        );
+        setStations(res.data || []);
+        if ((res.data || []).length === 0)
+          setError("No EV charging stations found nearby.");
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
+
+  const detectAndSearch = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          setUserLoc(loc);
+          searchNearby(loc.lat, loc.lng, searchRadius, {
+            vehicleType: vehicleTypeFilter,
+            connectorType: connectorFilter,
+          });
+        },
+        () =>
+          setError(
+            "Location access denied. Please enable GPS or enter manually.",
+          ),
+        { enableHighAccuracy: true },
+      );
+    } else {
+      setError("Geolocation not supported by your browser.");
+    }
+  };
+
+  const manualSearch = () => {
+    const lat = parseFloat(manualLat);
+    const lng = parseFloat(manualLng);
+    if (
+      isNaN(lat) ||
+      isNaN(lng) ||
+      lat < -90 ||
+      lat > 90 ||
+      lng < -180 ||
+      lng > 180
+    ) {
+      setError(
+        "Please enter valid latitude (-90 to 90) and longitude (-180 to 180).",
+      );
+      return;
+    }
+    setUserLoc({ lat, lng });
+    searchNearby(lat, lng, searchRadius, {
+      vehicleType: vehicleTypeFilter,
+      connectorType: connectorFilter,
+    });
+  };
+
+  const calculateEstimate = () => {
+    const capacity = DEFAULT_BATTERY_CAPACITIES[bookForm.vehicleType] || 50;
+    const energyNeeded =
+      ((bookForm.targetBatteryPercent - bookForm.currentBatteryPercent) / 100) *
+      capacity;
+    const chargingType = selectedStation?.chargingTypes?.find(
+      (ct) =>
+        ct.vehicleType === bookForm.vehicleType &&
+        ct.connectorType === bookForm.connectorType,
+    );
+    const pricePerKwh = chargingType?.pricePerKwh || 10;
+    const serviceCharges = selectedStation?.serviceCharges || 100;
+    const totalPrice = energyNeeded * pricePerKwh + serviceCharges;
+    return { energyNeeded, pricePerKwh, serviceCharges, totalPrice };
+  };
+
+  const bookCharging = async () => {
+    if (!selectedStation) return;
+    if (!userLoc) {
+      setError("Please detect your location first");
+      return;
+    }
+    setSending(true);
+    try {
+      await userAPI.createChargingRequest(token, {
+        chargingStation: selectedStation._id,
+        vehicleType: bookForm.vehicleType,
+        connectorType: bookForm.connectorType,
+        currentBatteryPercent: bookForm.currentBatteryPercent,
+        targetBatteryPercent: bookForm.targetBatteryPercent,
+        deliveryLocation: {
+          type: "Point",
+          coordinates: [userLoc.lng, userLoc.lat],
+        },
+        address:
+          bookForm.address ||
+          (userLoc ? "GPS Location" : selectedStation.address),
+        paymentMethod: bookForm.paymentMethod,
+      });
+      setSentSuccess(
+        `Charging request sent to ${selectedStation.stationName}! Check "My Requests" tab.`,
+      );
+      setShowBooking(false);
+      setSelectedStation(null);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="glass rounded-2xl p-6">
+        <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          <BatteryCharging className="w-5 h-5 text-green-400" /> Find Mobile EV
+          Charging
+        </h2>
+        <p className="text-slate-400 text-sm mb-4">
+          Locate the nearest mobile EV charging service, view charging prices,
+          and book a charging slot to your location.
+        </p>
+        {/* Filter options */}
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          <div>
+            <label className="text-slate-500 text-[10px] mb-1 block">
+              Vehicle Type
+            </label>
+            <select
+              value={vehicleTypeFilter}
+              onChange={(e) => setVehicleTypeFilter(e.target.value)}
+              className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:border-green-500/50 outline-none"
+            >
+              {VEHICLE_TYPE_OPTIONS.map((opt) => (
+                <option key={opt.id} value={opt.id}>
+                  {opt.emoji} {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-slate-500 text-[10px] mb-1 block">
+              Connector Type
+            </label>
+            <select
+              value={connectorFilter}
+              onChange={(e) => setConnectorFilter(e.target.value)}
+              className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:border-green-500/50 outline-none"
+            >
+              {CONNECTOR_TYPE_OPTIONS.map((opt) => (
+                <option key={opt.id} value={opt.id}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <button
+          onClick={detectAndSearch}
+          disabled={loading}
+          className="flex items-center gap-2 bg-green-500 hover:bg-green-400 text-slate-950 font-semibold px-6 py-3 rounded-xl transition-all active:scale-95 disabled:opacity-50"
+        >
+          {loading ? (
+            <Loader2 className="w-5 h-5 animate-spin" />
+          ) : (
+            <Navigation className="w-5 h-5" />
+          )}
+          {loading ? "Searching..." : "Find Charging Stations"}
+        </button>
+        {/* Manual Location Input */}
+        <div className="mt-4 pt-4 border-t border-white/8">
+          <p className="text-slate-400 text-xs mb-3">
+            Or enter location manually:
+          </p>
+          <div className="flex flex-wrap gap-3 items-end">
+            <div>
+              <label className="text-slate-500 text-[10px] mb-1 block">
+                Latitude
+              </label>
+              <input
+                type="number"
+                step="any"
+                placeholder="e.g. 26.1445"
+                value={manualLat}
+                onChange={(e) => setManualLat(e.target.value)}
+                className="w-40 bg-slate-800 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-slate-600 focus:border-green-500/50 outline-none"
+              />
+            </div>
+            <div>
+              <label className="text-slate-500 text-[10px] mb-1 block">
+                Longitude
+              </label>
+              <input
+                type="number"
+                step="any"
+                placeholder="e.g. 91.7362"
+                value={manualLng}
+                onChange={(e) => setManualLng(e.target.value)}
+                className="w-40 bg-slate-800 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-slate-600 focus:border-green-500/50 outline-none"
+              />
+            </div>
+            <button
+              onClick={manualSearch}
+              disabled={loading || !manualLat || !manualLng}
+              className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 border border-white/10 text-white font-medium px-5 py-2.5 rounded-xl transition-all disabled:opacity-50"
+            >
+              <Search className="w-4 h-4" /> Search
+            </button>
+          </div>
+        </div>
+        {/* Search Radius Control */}
+        <div className="mt-4 pt-4 border-t border-white/8">
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-slate-400 text-xs flex items-center gap-1.5">
+              <Radar className="w-3.5 h-3.5 text-green-400" /> Search Radius
+            </label>
+            <span className="text-green-400 text-sm font-semibold">
+              {searchRadius} km
+            </span>
+          </div>
+          <input
+            type="range"
+            min="5"
+            max="100"
+            step="5"
+            value={searchRadius}
+            onChange={(e) => setSearchRadius(Number(e.target.value))}
+            className="w-full accent-green-500 h-1.5 bg-slate-700 rounded-full cursor-pointer"
+          />
+          <div className="flex justify-between text-[10px] text-slate-600 mt-1">
+            <span>5 km</span>
+            <span>50 km</span>
+            <span>100 km</span>
+          </div>
+        </div>
+        {userLoc && (
+          <p className="text-slate-500 text-xs mt-3">
+            📍 Location: {userLoc.lat.toFixed(4)}, {userLoc.lng.toFixed(4)}
+          </p>
+        )}
+      </div>
+
+      {error && (
+        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          {error}
+        </div>
+      )}
+      {sentSuccess && (
+        <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 shrink-0" />
+          {sentSuccess}
+        </div>
+      )}
+
+      {stations.length > 0 && (
+        <div>
+          <h3 className="text-white font-semibold mb-4">
+            {stations.length} Charging Stations Found
+          </h3>
+          <div className="grid md:grid-cols-2 gap-4">
+            {stations.map((s) => (
+              <div
+                key={s._id}
+                className="glass rounded-2xl p-5 border border-white/8 hover:border-green-500/30 transition-all"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-linear-to-br from-green-500 to-green-600 flex items-center justify-center text-slate-950 font-bold">
+                    <BatteryCharging className="w-6 h-6" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-white font-semibold">{s.stationName}</h4>
+                    <p className="text-slate-400 text-xs mt-0.5">
+                      Owner: {s.ownerName}
+                    </p>
+                    <p className="text-slate-400 text-xs mt-0.5 flex items-center gap-1">
+                      <MapPin className="w-3 h-3" />
+                      {s.address}
+                    </p>
+                    {s.estimatedResponseTime && (
+                      <p className="text-slate-500 text-xs mt-0.5 flex items-center gap-1">
+                        <Clock className="w-3 h-3" />~{s.estimatedResponseTime}{" "}
+                        min response
+                      </p>
+                    )}
+                  </div>
+                  {s.mobileChargingAvailable && (
+                    <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center gap-1">
+                      <Truck className="w-3 h-3" />
+                      Mobile
+                    </span>
+                  )}
+                </div>
+                {/* Service details */}
+                {s.mobileChargingAvailable && (
+                  <div className="flex flex-wrap gap-3 mt-2 ml-16">
+                    {s.serviceRadius > 0 && (
+                      <span className="text-xs text-slate-400 flex items-center gap-1">
+                        <Radar className="w-3 h-3" />
+                        Radius: {s.serviceRadius} km
+                      </span>
+                    )}
+                    {s.serviceCharges > 0 && (
+                      <span className="text-xs text-slate-400 flex items-center gap-1">
+                        <IndianRupee className="w-3 h-3" />
+                        Service: ₹{s.serviceCharges}
+                      </span>
+                    )}
+                    {s.rating > 0 && (
+                      <span className="text-xs text-amber-400 flex items-center gap-1">
+                        <Star className="w-3 h-3 fill-amber-400" />
+                        {s.rating.toFixed(1)}
+                      </span>
+                    )}
+                  </div>
+                )}
+                {/* Charging types */}
+                {s.chargingTypes?.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {s.chargingTypes
+                      .filter((ct) => ct.available)
+                      .map((ct, i) => (
+                        <span
+                          key={i}
+                          className="text-xs px-2.5 py-1 rounded-lg border bg-emerald-500/5 border-emerald-500/20 text-emerald-400"
+                        >
+                          {ct.vehicleType} • {ct.connectorType}: ₹
+                          {ct.pricePerKwh}/kWh
+                        </span>
+                      ))}
+                  </div>
+                )}
+                <div className="flex gap-2 mt-4">
+                  <button
+                    onClick={() => {
+                      setSelectedStation(s);
+                      setShowBooking(true);
+                      setSentSuccess("");
+                    }}
+                    className="flex-1 flex items-center justify-center gap-1.5 bg-green-500 hover:bg-green-400 text-slate-950 font-semibold text-sm py-2.5 rounded-xl transition-all active:scale-95"
+                  >
+                    <BatteryCharging className="w-4 h-4" /> Book Charging
+                  </button>
+                  {s.phone && (
+                    <a
+                      href={`tel:${s.phone}`}
+                      className="flex items-center justify-center gap-1.5 bg-slate-800 hover:bg-slate-700 border border-white/10 text-white text-sm px-4 py-2.5 rounded-xl transition-all"
+                    >
+                      <Phone className="w-4 h-4" />
+                    </a>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Booking Modal */}
+      <AnimatePresence>
+        {showBooking && selectedStation && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.95 }}
+              className="bg-slate-900 border border-white/10 rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-white font-semibold">
+                  Book from {selectedStation.stationName}
+                </h3>
+                <button
+                  onClick={() => setShowBooking(false)}
+                  className="text-slate-400 hover:text-white"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-slate-400 text-xs mb-1 block">
+                      Vehicle Type
+                    </label>
+                    <select
+                      value={bookForm.vehicleType}
+                      onChange={(e) =>
+                        setBookForm((p) => ({
+                          ...p,
+                          vehicleType: e.target.value,
+                        }))
+                      }
+                      className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:border-green-500/50 outline-none"
+                    >
+                      <option value="2-wheeler">🛵 2-Wheeler</option>
+                      <option value="3-wheeler">🛺 3-Wheeler</option>
+                      <option value="4-wheeler">🚗 4-Wheeler</option>
+                      <option value="commercial">🚛 Commercial</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-slate-400 text-xs mb-1 block">
+                      Connector Type
+                    </label>
+                    <select
+                      value={bookForm.connectorType}
+                      onChange={(e) =>
+                        setBookForm((p) => ({
+                          ...p,
+                          connectorType: e.target.value,
+                        }))
+                      }
+                      className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:border-green-500/50 outline-none"
+                    >
+                      {(selectedStation.chargingTypes || [])
+                        .filter(
+                          (ct) =>
+                            ct.available &&
+                            ct.vehicleType === bookForm.vehicleType,
+                        )
+                        .map((ct) => (
+                          <option key={ct.connectorType} value={ct.connectorType}>
+                            {ct.connectorType} - ₹{ct.pricePerKwh}/kWh
+                          </option>
+                        ))}
+                      {(selectedStation.chargingTypes || []).filter(
+                        (ct) =>
+                          ct.available &&
+                          ct.vehicleType === bookForm.vehicleType,
+                      ).length === 0 && (
+                        <>
+                          <option value="Type2">Type 2 (AC)</option>
+                          <option value="CCS2">CCS2 (DC Fast)</option>
+                          <option value="CHAdeMO">CHAdeMO</option>
+                          <option value="GBT">GB/T</option>
+                        </>
+                      )}
+                    </select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-slate-400 text-xs mb-1 block">
+                      Current Battery %
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={bookForm.currentBatteryPercent}
+                      onChange={(e) =>
+                        setBookForm((p) => ({
+                          ...p,
+                          currentBatteryPercent: Number(e.target.value),
+                        }))
+                      }
+                      className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:border-green-500/50 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-slate-400 text-xs mb-1 block">
+                      Target Battery %
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={bookForm.targetBatteryPercent}
+                      onChange={(e) =>
+                        setBookForm((p) => ({
+                          ...p,
+                          targetBatteryPercent: Number(e.target.value),
+                        }))
+                      }
+                      className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:border-green-500/50 outline-none"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-slate-400 text-xs mb-1 block">
+                    Delivery Address{" "}
+                    <span className="text-slate-600">
+                      (optional — GPS location used if empty)
+                    </span>
+                  </label>
+                  <input
+                    placeholder="Enter address or leave empty to use GPS location"
+                    value={bookForm.address}
+                    onChange={(e) =>
+                      setBookForm((p) => ({ ...p, address: e.target.value }))
+                    }
+                    className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder:text-slate-500 focus:border-green-500/50 outline-none"
+                  />
+                  {userLoc && !bookForm.address && (
+                    <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                      <MapPin className="w-3 h-3 text-green-400" />
+                      GPS location will be sent: {userLoc.lat.toFixed(4)},{" "}
+                      {userLoc.lng.toFixed(4)}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="text-slate-400 text-xs mb-1 block">
+                    Payment Method
+                  </label>
+                  <select
+                    value={bookForm.paymentMethod}
+                    onChange={(e) =>
+                      setBookForm((p) => ({
+                        ...p,
+                        paymentMethod: e.target.value,
+                      }))
+                    }
+                    className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:border-green-500/50 outline-none"
+                  >
+                    <option value="cash">Cash on Delivery</option>
+                    <option value="upi">UPI</option>
+                    <option value="card">Card</option>
+                    <option value="online">Online Payment</option>
+                  </select>
+                </div>
+                {/* Price estimate */}
+                <div className="bg-slate-800/50 rounded-xl p-3 border border-white/5">
+                  <div className="flex justify-between text-sm text-slate-300">
+                    <span>
+                      Energy (~{calculateEstimate().energyNeeded.toFixed(1)} kWh)
+                    </span>
+                    <span>
+                      ₹
+                      {(
+                        calculateEstimate().energyNeeded *
+                        calculateEstimate().pricePerKwh
+                      ).toFixed(0)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm text-slate-300 mt-1">
+                    <span>Service Charges</span>
+                    <span>₹{calculateEstimate().serviceCharges}</span>
+                  </div>
+                  <div className="flex justify-between text-sm font-semibold text-green-400 mt-2 pt-2 border-t border-white/5">
+                    <span>Total</span>
+                    <span>₹{calculateEstimate().totalPrice.toFixed(0)}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setShowBooking(false)}
+                  className="flex-1 bg-slate-800 border border-white/10 text-white font-medium py-2.5 rounded-xl hover:bg-slate-700 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={bookCharging}
+                  disabled={sending}
+                  className="flex-1 flex items-center justify-center gap-2 bg-green-500 hover:bg-green-400 text-slate-950 font-semibold py-2.5 rounded-xl transition-all disabled:opacity-50"
+                >
+                  {sending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <BatteryCharging className="w-4 h-4" />
+                  )}
+                  {sending ? "Booking..." : "Confirm Booking"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 /* ════════════════════════ MY REQUESTS TAB ════════════════════════ */
 function MyRequestsTab({ token }) {
   const [mechanicReqs, setMechanicReqs] = useState([]);
   const [fuelReqs, setFuelReqs] = useState([]);
+  const [chargingReqs, setChargingReqs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [subTab, setSubTab] = useState("mechanic");
@@ -1108,12 +1767,14 @@ function MyRequestsTab({ token }) {
   useEffect(() => {
     (async () => {
       try {
-        const [mRes, fRes] = await Promise.all([
+        const [mRes, fRes, cRes] = await Promise.all([
           userAPI.getMyMechanicRequests(token),
           userAPI.getMyFuelRequests(token),
+          userAPI.getMyChargingRequests(token),
         ]);
         setMechanicReqs(mRes.data || []);
         setFuelReqs(fRes.data || []);
+        setChargingReqs(cRes.data || []);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -1144,6 +1805,17 @@ function MyRequestsTab({ token }) {
     }
   };
 
+  const cancelChargingReq = async (id) => {
+    try {
+      await userAPI.cancelChargingRequest(token, id);
+      setChargingReqs((prev) =>
+        prev.map((r) => (r._id === id ? { ...r, status: "cancelled" } : r)),
+      );
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   if (loading)
     return (
       <div className="flex justify-center py-20">
@@ -1153,20 +1825,27 @@ function MyRequestsTab({ token }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap">
         <button
           onClick={() => setSubTab("mechanic")}
           className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${subTab === "mechanic" ? "bg-blue-500/10 text-blue-400 border border-blue-500/20" : "bg-slate-800/50 text-slate-400 border border-white/8"}`}
         >
           <Wrench className="w-4 h-4 inline mr-1.5" />
-          Mechanic Requests ({mechanicReqs.length})
+          Mechanic ({mechanicReqs.length})
         </button>
         <button
           onClick={() => setSubTab("fuel")}
           className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${subTab === "fuel" ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" : "bg-slate-800/50 text-slate-400 border border-white/8"}`}
         >
           <Fuel className="w-4 h-4 inline mr-1.5" />
-          Fuel Orders ({fuelReqs.length})
+          Fuel ({fuelReqs.length})
+        </button>
+        <button
+          onClick={() => setSubTab("charging")}
+          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${subTab === "charging" ? "bg-green-500/10 text-green-400 border border-green-500/20" : "bg-slate-800/50 text-slate-400 border border-white/8"}`}
+        >
+          <BatteryCharging className="w-4 h-4 inline mr-1.5" />
+          Charging ({chargingReqs.length})
         </button>
       </div>
 
@@ -1281,6 +1960,66 @@ function MyRequestsTab({ token }) {
                 {["pending", "confirmed"].includes(r.status) && (
                   <button
                     onClick={() => cancelFuelReq(r._id)}
+                    className="text-xs bg-red-500/10 text-red-400 border border-red-500/20 px-3 py-1.5 rounded-lg hover:bg-red-500/20 transition-colors"
+                  >
+                    <XCircle className="w-3 h-3 inline mr-1" />
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {subTab === "charging" && (
+        <div className="space-y-3">
+          {chargingReqs.length === 0 && (
+            <p className="text-slate-500 text-center py-10">
+              No charging requests yet. Search for a charging station and book
+              mobile charging.
+            </p>
+          )}
+          {chargingReqs.map((r) => (
+            <div
+              key={r._id}
+              className="glass rounded-xl p-5 border border-white/8"
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h4 className="text-white font-semibold">
+                      {r.chargingStation?.stationName || "Charging Station"}
+                    </h4>
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${STATUS_COLORS[r.status] || "bg-slate-500/10 text-slate-400"}`}
+                    >
+                      {r.status}
+                    </span>
+                  </div>
+                  <p className="text-slate-300 text-sm">
+                    {r.vehicleType} • {r.connectorType}
+                  </p>
+                  <p className="text-slate-400 text-xs">
+                    {r.currentBatteryPercent}% → {r.targetBatteryPercent}% (~
+                    {r.estimatedEnergyNeeded?.toFixed(1)} kWh)
+                  </p>
+                  <p className="text-green-400 text-sm font-semibold">
+                    ₹{r.totalPrice?.toFixed(0)}
+                  </p>
+                  <p className="text-slate-500 text-xs mt-1">{r.address}</p>
+                  {r.technicianName && (
+                    <p className="text-slate-500 text-xs mt-1">
+                      Technician: {r.technicianName} ({r.technicianPhone})
+                    </p>
+                  )}
+                  <p className="text-slate-600 text-xs mt-1">
+                    {new Date(r.createdAt).toLocaleString()}
+                  </p>
+                </div>
+                {["pending", "confirmed"].includes(r.status) && (
+                  <button
+                    onClick={() => cancelChargingReq(r._id)}
                     className="text-xs bg-red-500/10 text-red-400 border border-red-500/20 px-3 py-1.5 rounded-lg hover:bg-red-500/20 transition-colors"
                   >
                     <XCircle className="w-3 h-3 inline mr-1" />

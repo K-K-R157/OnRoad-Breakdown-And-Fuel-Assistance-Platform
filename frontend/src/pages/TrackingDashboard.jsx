@@ -457,7 +457,11 @@ export default function TrackingDashboard() {
                 ))}
                 {providers.length <= 1 && (
                   <p className="text-slate-500 text-sm text-center py-4">
-                    No other {mechanicTypeFilter ? `${MECHANIC_TYPE_FILTERS.find(f => f.id === mechanicTypeFilter)?.label.toLowerCase()} ` : ""}mechanics found nearby.
+                    No other{" "}
+                    {mechanicTypeFilter
+                      ? `${MECHANIC_TYPE_FILTERS.find((f) => f.id === mechanicTypeFilter)?.label.toLowerCase()} `
+                      : ""}
+                    mechanics found nearby.
                   </p>
                 )}
               </div>

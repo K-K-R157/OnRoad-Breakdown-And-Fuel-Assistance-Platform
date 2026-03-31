@@ -29,6 +29,10 @@ const ROLE_LINKS = {
     { label: "Home", to: "/" },
     { label: "Station Panel", to: "/fuel-station" },
   ],
+  chargingStation: [
+    { label: "Home", to: "/" },
+    { label: "Charging Panel", to: "/charging-station" },
+  ],
   admin: [
     { label: "Home", to: "/" },
     { label: "Admin Panel", to: "/admin" },
@@ -39,6 +43,10 @@ const PROFILE_NAV = {
   user: { path: "/dashboard?tab=profile", state: { tab: "profile" } },
   mechanic: { path: "/mechanic?tab=profile", state: { tab: "profile" } },
   fuelStation: { path: "/fuel-station?tab=station", state: { tab: "station" } },
+  chargingStation: {
+    path: "/charging-station?tab=station",
+    state: { tab: "station" },
+  },
   admin: { path: "/admin?tab=profile", state: { tab: "profile" } },
 };
 

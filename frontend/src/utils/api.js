@@ -77,6 +77,19 @@ export const userAPI = {
 
   cancelFuelRequest: (token, id) =>
     request(`/users/requests/fuel/${id}/cancel`, { method: "PATCH", token }),
+
+  // Create a charging request
+  createChargingRequest: (token, body) =>
+    request("/users/requests/charging", { method: "POST", token, body }),
+
+  getMyChargingRequests: (token) =>
+    request("/users/requests/charging", { token }),
+
+  cancelChargingRequest: (token, id) =>
+    request(`/users/requests/charging/${id}/cancel`, {
+      method: "PATCH",
+      token,
+    }),
 };
 
 /* ─── Mechanics ─── */
@@ -133,6 +146,40 @@ export const fuelStationAPI = {
     }),
 };
 
+/* ─── Charging Stations ─── */
+export const chargingStationAPI = {
+  getNearby: (lng, lat, maxDistance = 10000, filters = {}) => {
+    let url = `/charging-stations/nearby?longitude=${lng}&latitude=${lat}&maxDistance=${maxDistance}`;
+    if (filters.vehicleType) url += `&vehicleType=${filters.vehicleType}`;
+    if (filters.connectorType) url += `&connectorType=${filters.connectorType}`;
+    if (filters.mobileChargingOnly) url += `&mobileChargingOnly=true`;
+    return request(url);
+  },
+
+  getProfile: (token) => request("/charging-stations/me", { token }),
+
+  updateProfile: (token, body) =>
+    request("/charging-stations/me", { method: "PUT", token, body }),
+
+  updateChargingTypes: (token, chargingTypes) =>
+    request("/charging-stations/charging-types", {
+      method: "PATCH",
+      token,
+      body: { chargingTypes },
+    }),
+
+  getRequests: (token) => request("/charging-stations/requests", { token }),
+
+  updateRequestStatus: (token, id, status, extras = {}) =>
+    request(`/charging-stations/requests/${id}/status`, {
+      method: "PATCH",
+      token,
+      body: { status, ...extras },
+    }),
+
+  getStats: (token) => request("/charging-stations/stats", { token }),
+};
+
 /* ─── Admin ─── */
 export const adminAPI = {
   getProfile: (token) => request("/admin/me", { token }),
@@ -179,6 +226,28 @@ export const adminAPI = {
 
   getActiveFuelRequests: (token) =>
     request("/admin/fuel-requests/active", { token }),
+
+  getPendingChargingStations: (token) =>
+    request("/admin/charging-stations/pending", { token }),
+
+  reviewChargingStation: (token, id, action) =>
+    request(`/admin/charging-stations/${id}/review`, {
+      method: "PATCH",
+      token,
+      body: { action },
+    }),
+
+  getAllChargingStations: (token) =>
+    request("/admin/charging-stations/all", { token }),
+
+  revokeChargingStation: (token, id) =>
+    request(`/admin/charging-stations/${id}/revoke`, {
+      method: "PATCH",
+      token,
+    }),
+
+  getActiveChargingRequests: (token) =>
+    request("/admin/charging-requests/active", { token }),
 
   getAllFeedback: (token) => request("/admin/feedback/all", { token }),
 };

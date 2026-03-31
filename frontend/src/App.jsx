@@ -19,6 +19,7 @@ import LoginPage from "./pages/LoginPage";
 import UserDashboard from "./pages/UserDashboard";
 import MechanicDashboard from "./pages/MechanicDashboard";
 import FuelStationDashboard from "./pages/FuelStationDashboard";
+import ChargingStationDashboard from "./pages/ChargingStationDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 
 /* Page transition wrapper */
@@ -94,6 +95,16 @@ function AppRoutes() {
               <PageTransition>
                 <ProtectedRoute allowedRoles={["fuelStation"]}>
                   <FuelStationDashboard />
+                </ProtectedRoute>
+              </PageTransition>
+            }
+          />
+          <Route
+            path="/charging-station"
+            element={
+              <PageTransition>
+                <ProtectedRoute allowedRoles={["chargingStation"]}>
+                  <ChargingStationDashboard />
                 </ProtectedRoute>
               </PageTransition>
             }

@@ -13,8 +13,10 @@ const mongoose = require("mongoose");
 const User = require("./models/User");
 const Mechanic = require("./models/Mechanic");
 const FuelStation = require("./models/FuelStation");
+const ChargingStation = require("./models/ChargingStation");
 const MechanicRequest = require("./models/Mechanicrequest");
 const FuelRequest = require("./models/Fuelrequest");
+const ChargingRequest = require("./models/ChargingRequest");
 const Feedback = require("./models/Feedback");
 
 const PASSWORD = "Test@1234";
@@ -33,8 +35,10 @@ async function seed() {
         User.deleteMany({}),
         Mechanic.deleteMany({}),
         FuelStation.deleteMany({}),
+        ChargingStation.deleteMany({}),
         MechanicRequest.deleteMany({}),
         FuelRequest.deleteMany({}),
+        ChargingRequest.deleteMany({}),
         Feedback.deleteMany({}),
       ]);
       console.log("   Done.");
@@ -452,6 +456,255 @@ async function seed() {
       `   Created ${stations.length} fuel stations (1 pending approval)`,
     );
 
+    /* ────────────────────── CHARGING STATIONS ────────────────── */
+    console.log("⚡ Creating charging stations…");
+    const chargingStations = await ChargingStation.create([
+      {
+        stationName: "Tata Power EZ Charge - Paltan Bazaar",
+        ownerName: "Anil Sharma",
+        email: "tatapower.ghy@example.com",
+        password: PASSWORD,
+        phone: "+919900300001",
+        address: "Paltan Bazaar, Guwahati, Assam",
+        location: { type: "Point", coordinates: [91.7362, 26.1445] },
+        chargingTypes: [
+          {
+            vehicleType: "4-wheeler",
+            connectorType: "CCS2",
+            pricePerKwh: 12,
+            available: true,
+          },
+          {
+            vehicleType: "4-wheeler",
+            connectorType: "Type2",
+            pricePerKwh: 10,
+            available: true,
+          },
+          {
+            vehicleType: "2-wheeler",
+            connectorType: "Type2",
+            pricePerKwh: 8,
+            available: true,
+          },
+        ],
+        licenseNumber: "EVCS-AS-001",
+        licenseCopy: "license-tatapower.pdf",
+        mobileChargingAvailable: true,
+        serviceRadius: 15,
+        serviceCharges: 100,
+        estimatedResponseTime: 30,
+        rating: 4.8,
+        totalRatings: 65,
+        isApproved: true,
+        isVerified: true,
+        approvedBy: admin._id,
+        approvedAt: new Date("2025-06-15"),
+      },
+      {
+        stationName: "EESL EV Charging Hub - GS Road",
+        ownerName: "Pradeep Gogoi",
+        email: "eesl.gsroad@example.com",
+        password: PASSWORD,
+        phone: "+919900300002",
+        address: "GS Road, Guwahati, Assam",
+        location: { type: "Point", coordinates: [91.765, 26.148] },
+        chargingTypes: [
+          {
+            vehicleType: "4-wheeler",
+            connectorType: "CCS2",
+            pricePerKwh: 14,
+            available: true,
+          },
+          {
+            vehicleType: "4-wheeler",
+            connectorType: "CHAdeMO",
+            pricePerKwh: 13,
+            available: true,
+          },
+          {
+            vehicleType: "3-wheeler",
+            connectorType: "GBT",
+            pricePerKwh: 9,
+            available: true,
+          },
+        ],
+        licenseNumber: "EVCS-AS-002",
+        licenseCopy: "license-eesl.pdf",
+        mobileChargingAvailable: true,
+        serviceRadius: 12,
+        serviceCharges: 80,
+        estimatedResponseTime: 25,
+        rating: 4.5,
+        totalRatings: 42,
+        isApproved: true,
+        isVerified: true,
+        approvedBy: admin._id,
+        approvedAt: new Date("2025-07-20"),
+      },
+      {
+        stationName: "Ather Grid - Beltola",
+        ownerName: "Rajiv Choudhury",
+        email: "athergrid.beltola@example.com",
+        password: PASSWORD,
+        phone: "+919900300003",
+        address: "Beltola Chariali, Guwahati, Assam",
+        location: { type: "Point", coordinates: [91.78, 26.125] },
+        chargingTypes: [
+          {
+            vehicleType: "2-wheeler",
+            connectorType: "Type2",
+            pricePerKwh: 6,
+            available: true,
+          },
+          {
+            vehicleType: "2-wheeler",
+            connectorType: "GBT",
+            pricePerKwh: 5.5,
+            available: true,
+          },
+        ],
+        licenseNumber: "EVCS-AS-003",
+        licenseCopy: "license-ather.pdf",
+        mobileChargingAvailable: true,
+        serviceRadius: 8,
+        serviceCharges: 50,
+        estimatedResponseTime: 20,
+        rating: 4.9,
+        totalRatings: 88,
+        isApproved: true,
+        isVerified: true,
+        approvedBy: admin._id,
+        approvedAt: new Date("2025-08-10"),
+      },
+      {
+        stationName: "ChargeZone - Dispur",
+        ownerName: "Manish Kalita",
+        email: "chargezone.dispur@example.com",
+        password: PASSWORD,
+        phone: "+919900300004",
+        address: "Dispur, Guwahati, Assam",
+        location: { type: "Point", coordinates: [91.788, 26.144] },
+        chargingTypes: [
+          {
+            vehicleType: "4-wheeler",
+            connectorType: "CCS2",
+            pricePerKwh: 15,
+            available: true,
+          },
+          {
+            vehicleType: "commercial",
+            connectorType: "CCS2",
+            pricePerKwh: 11,
+            available: true,
+          },
+        ],
+        licenseNumber: "EVCS-AS-004",
+        licenseCopy: "license-chargezone.pdf",
+        mobileChargingAvailable: false,
+        serviceRadius: 0,
+        serviceCharges: 0,
+        estimatedResponseTime: 0,
+        rating: 0,
+        totalRatings: 0,
+        isApproved: false,
+        isVerified: false,
+      },
+      {
+        stationName: "Fortum Charge & Drive - Maligaon",
+        ownerName: "Bikash Das",
+        email: "fortum.maligaon@example.com",
+        password: PASSWORD,
+        phone: "+919900300005",
+        address: "Maligaon Chariali, Guwahati, Assam",
+        location: { type: "Point", coordinates: [91.718, 26.178] },
+        chargingTypes: [
+          {
+            vehicleType: "4-wheeler",
+            connectorType: "Type2",
+            pricePerKwh: 11,
+            available: true,
+          },
+          {
+            vehicleType: "4-wheeler",
+            connectorType: "CCS2",
+            pricePerKwh: 13,
+            available: true,
+          },
+          {
+            vehicleType: "3-wheeler",
+            connectorType: "GBT",
+            pricePerKwh: 8,
+            available: true,
+          },
+          {
+            vehicleType: "2-wheeler",
+            connectorType: "Type2",
+            pricePerKwh: 7,
+            available: true,
+          },
+        ],
+        licenseNumber: "EVCS-AS-005",
+        licenseCopy: "license-fortum.pdf",
+        mobileChargingAvailable: true,
+        serviceRadius: 20,
+        serviceCharges: 120,
+        estimatedResponseTime: 35,
+        rating: 4.6,
+        totalRatings: 54,
+        isApproved: true,
+        isVerified: true,
+        approvedBy: admin._id,
+        approvedAt: new Date("2025-09-25"),
+      },
+      {
+        stationName: "BPCL EV Station - Chandmari",
+        ownerName: "Rupam Borah",
+        email: "bpcl.ev.chandmari@example.com",
+        password: PASSWORD,
+        phone: "+919900300006",
+        address: "Chandmari, Guwahati, Assam",
+        location: { type: "Point", coordinates: [91.756, 26.17] },
+        chargingTypes: [
+          {
+            vehicleType: "4-wheeler",
+            connectorType: "CCS2",
+            pricePerKwh: 12.5,
+            available: true,
+          },
+          {
+            vehicleType: "4-wheeler",
+            connectorType: "CHAdeMO",
+            pricePerKwh: 12,
+            available: false,
+          },
+          {
+            vehicleType: "commercial",
+            connectorType: "CCS2",
+            pricePerKwh: 10,
+            available: true,
+          },
+        ],
+        licenseNumber: "EVCS-AS-006",
+        licenseCopy: "license-bpcl-ev.pdf",
+        mobileChargingAvailable: true,
+        serviceRadius: 18,
+        serviceCharges: 90,
+        estimatedResponseTime: 30,
+        rating: 4.4,
+        totalRatings: 38,
+        isApproved: true,
+        isVerified: true,
+        approvedBy: admin._id,
+        approvedAt: new Date("2025-10-30"),
+      },
+    ]);
+
+    const [tataPowerEV, eeslHub, atherGrid, chargeZone, fortumCharge, bpclEV] =
+      chargingStations;
+    console.log(
+      `   Created ${chargingStations.length} charging stations (1 pending approval)`,
+    );
+
     /* ────────────────────── MECHANIC REQUESTS ────────────────── */
     console.log("📋 Creating mechanic requests…");
     const mechRequests = await MechanicRequest.create([
@@ -653,6 +906,153 @@ async function seed() {
     ]);
     console.log(`   Created ${fuelRequests.length} fuel requests`);
 
+    /* ────────────────────── CHARGING REQUESTS ─────────────────── */
+    console.log("⚡ Creating charging requests…");
+    const chargingRequests = await ChargingRequest.create([
+      {
+        user: aarav._id,
+        chargingStation: tataPowerEV._id,
+        vehicleType: "4-wheeler",
+        connectorType: "CCS2",
+        currentBatteryPercent: 5,
+        targetBatteryPercent: 80,
+        estimatedBatteryCapacity: 50,
+        estimatedEnergyNeeded: 37.5,
+        pricePerKwh: 12,
+        serviceCharges: 100,
+        totalPrice: 37.5 * 12 + 100,
+        deliveryLocation: { type: "Point", coordinates: [91.737, 26.145] },
+        address: "Paltan Bazaar, Guwahati, Assam",
+        status: "completed",
+        paymentStatus: "paid",
+        paymentMethod: "upi",
+        technicianName: "Amit Kumar",
+        technicianPhone: "+919845600001",
+        vehicleNumber: "AS 01 EV 1001",
+        confirmedAt: new Date("2026-03-06T12:00:00Z"),
+        dispatchedAt: new Date("2026-03-06T12:05:00Z"),
+        arrivedAt: new Date("2026-03-06T12:30:00Z"),
+        chargingStartedAt: new Date("2026-03-06T12:35:00Z"),
+        completedAt: new Date("2026-03-06T13:45:00Z"),
+        createdAt: new Date("2026-03-06T11:50:00Z"),
+      },
+      {
+        user: priya._id,
+        chargingStation: eeslHub._id,
+        vehicleType: "4-wheeler",
+        connectorType: "CHAdeMO",
+        currentBatteryPercent: 10,
+        targetBatteryPercent: 70,
+        estimatedBatteryCapacity: 40,
+        estimatedEnergyNeeded: 24,
+        pricePerKwh: 13,
+        serviceCharges: 80,
+        totalPrice: 24 * 13 + 80,
+        deliveryLocation: { type: "Point", coordinates: [91.744, 26.18] },
+        address: "Fancy Bazaar, Guwahati, Assam",
+        status: "charging",
+        paymentStatus: "pending",
+        paymentMethod: "card",
+        technicianName: "Rajan Dutta",
+        technicianPhone: "+919845600002",
+        vehicleNumber: "AS 01 EV 2002",
+        confirmedAt: new Date("2026-03-08T09:00:00Z"),
+        dispatchedAt: new Date("2026-03-08T09:05:00Z"),
+        arrivedAt: new Date("2026-03-08T09:25:00Z"),
+        chargingStartedAt: new Date("2026-03-08T09:30:00Z"),
+        createdAt: new Date("2026-03-08T08:50:00Z"),
+      },
+      {
+        user: vikram._id,
+        chargingStation: atherGrid._id,
+        vehicleType: "2-wheeler",
+        connectorType: "Type2",
+        currentBatteryPercent: 15,
+        targetBatteryPercent: 100,
+        estimatedBatteryCapacity: 3,
+        estimatedEnergyNeeded: 2.55,
+        pricePerKwh: 6,
+        serviceCharges: 50,
+        totalPrice: 2.55 * 6 + 50,
+        deliveryLocation: { type: "Point", coordinates: [91.788, 26.144] },
+        address: "Dispur, Guwahati, Assam",
+        status: "dispatched",
+        paymentStatus: "pending",
+        paymentMethod: "cash",
+        technicianName: "Bikash Saikia",
+        technicianPhone: "+919845600003",
+        vehicleNumber: "AS 01 EV 3003",
+        confirmedAt: new Date("2026-03-08T10:10:00Z"),
+        dispatchedAt: new Date("2026-03-08T10:15:00Z"),
+        createdAt: new Date("2026-03-08T10:00:00Z"),
+      },
+      {
+        user: sneha._id,
+        chargingStation: fortumCharge._id,
+        vehicleType: "3-wheeler",
+        connectorType: "GBT",
+        currentBatteryPercent: 8,
+        targetBatteryPercent: 90,
+        estimatedBatteryCapacity: 7,
+        estimatedEnergyNeeded: 5.74,
+        pricePerKwh: 8,
+        serviceCharges: 120,
+        totalPrice: 5.74 * 8 + 120,
+        deliveryLocation: { type: "Point", coordinates: [91.78, 26.125] },
+        address: "Beltola Chariali, Guwahati, Assam",
+        status: "confirmed",
+        paymentStatus: "pending",
+        paymentMethod: "online",
+        technicianName: "Nabajyoti Bora",
+        technicianPhone: "+919845600004",
+        vehicleNumber: "AS 01 EV 4004",
+        confirmedAt: new Date("2026-03-08T10:35:00Z"),
+        createdAt: new Date("2026-03-08T10:30:00Z"),
+      },
+      {
+        user: rohit._id,
+        chargingStation: tataPowerEV._id,
+        vehicleType: "4-wheeler",
+        connectorType: "Type2",
+        currentBatteryPercent: 20,
+        targetBatteryPercent: 80,
+        estimatedBatteryCapacity: 60,
+        estimatedEnergyNeeded: 36,
+        pricePerKwh: 10,
+        serviceCharges: 100,
+        totalPrice: 36 * 10 + 100,
+        deliveryLocation: { type: "Point", coordinates: [91.755, 26.168] },
+        address: "Chandmari, Guwahati, Assam",
+        status: "pending",
+        paymentStatus: "pending",
+        paymentMethod: "upi",
+        createdAt: new Date("2026-03-08T10:45:00Z"),
+      },
+      {
+        user: ananya._id,
+        chargingStation: bpclEV._id,
+        vehicleType: "4-wheeler",
+        connectorType: "CCS2",
+        currentBatteryPercent: 12,
+        targetBatteryPercent: 85,
+        estimatedBatteryCapacity: 45,
+        estimatedEnergyNeeded: 32.85,
+        pricePerKwh: 12.5,
+        serviceCharges: 90,
+        totalPrice: 32.85 * 12.5 + 90,
+        deliveryLocation: { type: "Point", coordinates: [91.775, 26.154] },
+        address: "Ganeshguri, Guwahati, Assam",
+        status: "cancelled",
+        paymentStatus: "pending",
+        paymentMethod: "card",
+        cancellationReason: "Found a nearby public charging station",
+        cancelledBy: "user",
+        cancelledAt: new Date("2026-03-07T16:00:00Z"),
+        createdAt: new Date("2026-03-07T15:45:00Z"),
+      },
+    ]);
+    console.log(`   Created ${chargingRequests.length} charging requests`);
+
     /* ────────────────────────── FEEDBACK ──────────────────────── */
     console.log("⭐ Creating feedback…");
     const feedbacks = await Feedback.create([
@@ -733,36 +1133,92 @@ async function seed() {
 
     /* ────────────────────────── SUMMARY ──────────────────────── */
     console.log("\n🎉 Seed complete! Here are the test accounts:\n");
-    console.log("──────────────────────────────────────────────────────────");
-    console.log("  ROLE          EMAIL                          PASSWORD");
-    console.log("──────────────────────────────────────────────────────────");
-    console.log("  Admin         admin@onroad.com               Test@1234");
-    console.log("  User          aarav@example.com               Test@1234");
-    console.log("  User          priya@example.com               Test@1234");
-    console.log("  User          vikram@example.com              Test@1234");
-    console.log("  User          sneha@example.com               Test@1234");
-    console.log("  User          rohit@example.com               Test@1234");
-    console.log("  User          ananya@example.com              Test@1234");
-    console.log("  Mechanic      rajesh.mechanic@example.com     Test@1234");
-    console.log("  Mechanic      suresh.mechanic@example.com     Test@1234");
-    console.log("  Mechanic      manoj.mechanic@example.com      Test@1234");
     console.log(
-      "  Mechanic      lakshmi.mechanic@example.com    Test@1234  (offline)",
+      "──────────────────────────────────────────────────────────────",
+    );
+    console.log("  ROLE              EMAIL                          PASSWORD");
+    console.log(
+      "──────────────────────────────────────────────────────────────",
+    );
+    console.log("  Admin             admin@onroad.com               Test@1234");
+    console.log(
+      "  User              aarav@example.com               Test@1234",
     );
     console.log(
-      "  Mechanic      deepak.mechanic@example.com     Test@1234  (pending)",
+      "  User              priya@example.com               Test@1234",
     );
-    console.log("  Mechanic      biren.mechanic@example.com      Test@1234");
-    console.log("  Mechanic      hari.mechanic@example.com       Test@1234");
-    console.log("  FuelStation   bharatpetro@example.com         Test@1234");
-    console.log("  FuelStation   indianoil.inr@example.com       Test@1234");
-    console.log("  FuelStation   hppump@example.com              Test@1234");
     console.log(
-      "  FuelStation   nayara.wf@example.com           Test@1234  (pending)",
+      "  User              vikram@example.com              Test@1234",
     );
-    console.log("  FuelStation   reliance.maligaon@example.com   Test@1234");
-    console.log("  FuelStation   indianoil.chandmari@example.com Test@1234");
-    console.log("──────────────────────────────────────────────────────────\n");
+    console.log(
+      "  User              sneha@example.com               Test@1234",
+    );
+    console.log(
+      "  User              rohit@example.com               Test@1234",
+    );
+    console.log(
+      "  User              ananya@example.com              Test@1234",
+    );
+    console.log(
+      "  Mechanic          rajesh.mechanic@example.com     Test@1234",
+    );
+    console.log(
+      "  Mechanic          suresh.mechanic@example.com     Test@1234",
+    );
+    console.log(
+      "  Mechanic          manoj.mechanic@example.com      Test@1234",
+    );
+    console.log(
+      "  Mechanic          lakshmi.mechanic@example.com    Test@1234  (offline)",
+    );
+    console.log(
+      "  Mechanic          deepak.mechanic@example.com     Test@1234  (pending)",
+    );
+    console.log(
+      "  Mechanic          biren.mechanic@example.com      Test@1234",
+    );
+    console.log(
+      "  Mechanic          hari.mechanic@example.com       Test@1234",
+    );
+    console.log(
+      "  FuelStation       bharatpetro@example.com         Test@1234",
+    );
+    console.log(
+      "  FuelStation       indianoil.inr@example.com       Test@1234",
+    );
+    console.log(
+      "  FuelStation       hppump@example.com              Test@1234",
+    );
+    console.log(
+      "  FuelStation       nayara.wf@example.com           Test@1234  (pending)",
+    );
+    console.log(
+      "  FuelStation       reliance.maligaon@example.com   Test@1234",
+    );
+    console.log(
+      "  FuelStation       indianoil.chandmari@example.com Test@1234",
+    );
+    console.log(
+      "  ChargingStation   tatapower.ghy@example.com       Test@1234",
+    );
+    console.log(
+      "  ChargingStation   eesl.gsroad@example.com         Test@1234",
+    );
+    console.log(
+      "  ChargingStation   athergrid.beltola@example.com   Test@1234",
+    );
+    console.log(
+      "  ChargingStation   chargezone.dispur@example.com   Test@1234  (pending)",
+    );
+    console.log(
+      "  ChargingStation   fortum.maligaon@example.com     Test@1234",
+    );
+    console.log(
+      "  ChargingStation   bpcl.ev.chandmari@example.com   Test@1234",
+    );
+    console.log(
+      "──────────────────────────────────────────────────────────────\n",
+    );
 
     process.exit(0);
   } catch (err) {

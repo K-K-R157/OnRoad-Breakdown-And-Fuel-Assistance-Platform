@@ -18,6 +18,7 @@ import {
   Clock,
   IndianRupee,
   Truck,
+  BatteryCharging,
 } from "lucide-react";
 import { authAPI } from "../utils/api";
 import { useAuth } from "../context/AuthContext";
@@ -43,6 +44,13 @@ const ROLES = [
     icon: <Fuel className="w-6 h-6" />,
     desc: "Deliver fuel on demand",
     color: "from-amber-500 to-amber-600",
+  },
+  {
+    value: "chargingStation",
+    label: "Charging Station",
+    icon: <BatteryCharging className="w-6 h-6" />,
+    desc: "EV mobile charging",
+    color: "from-green-500 to-green-600",
   },
   {
     value: "admin",
@@ -101,6 +109,19 @@ export default function LoginPage() {
     deliveryRadius: "",
     deliveryCharges: "",
     minimumOrderQuantity: "",
+    // Charging station fields
+    chargingTypes: [
+      {
+        vehicleType: "4-wheeler",
+        connectorType: "CCS2",
+        pricePerKwh: "",
+        available: true,
+      },
+    ],
+    mobileChargingAvailable: true,
+    serviceRadius: "",
+    serviceCharges: "",
+    estimatedResponseTime: "",
   });
   const set = (field, value) => {
     setForm((p) => ({ ...p, [field]: value }));
@@ -127,6 +148,7 @@ export default function LoginPage() {
           user: "/dashboard",
           mechanic: "/mechanic",
           fuelStation: "/fuel-station",
+          chargingStation: "/charging-station",
           admin: "/admin",
         };
         navigate(redir[res.user.role] || "/dashboard");
@@ -179,9 +201,38 @@ export default function LoginPage() {
           payload.minimumOrderQuantity = Number(form.minimumOrderQuantity) || 5;
           payload.licenseNumber = form.licenseNumber;
           payload.licenseCopy = form.licenseCopy || "pending-upload";
+        } else if (form.role === "chargingStation") {
+          payload.stationName = form.stationName;
+          payload.ownerName = form.ownerName || form.name;
+          payload.chargingTypes = form.chargingTypes
+            .filter((c) => c.vehicleType && c.connectorType && c.pricePerKwh)
+            .map((c) => ({
+              vehicleType: c.vehicleType,
+              connectorType: c.connectorType,
+              pricePerKwh: Number(c.pricePerKwh),
+              available: c.available,
+            }));
+          payload.location = {
+            type: "Point",
+            coordinates: [
+              Number(form.longitude) || 77.5946,
+              Number(form.latitude) || 12.9716,
+            ],
+          };
+          payload.mobileChargingAvailable = form.mobileChargingAvailable;
+          payload.serviceRadius = Number(form.serviceRadius) || 10;
+          payload.serviceCharges = Number(form.serviceCharges) || 100;
+          payload.estimatedResponseTime =
+            Number(form.estimatedResponseTime) || 30;
+          payload.licenseNumber = form.licenseNumber;
+          payload.licenseCopy = form.licenseCopy || "pending-upload";
         }
         const res = await authAPI.register(payload);
-        if (form.role === "mechanic" || form.role === "fuelStation") {
+        if (
+          form.role === "mechanic" ||
+          form.role === "fuelStation" ||
+          form.role === "chargingStation"
+        ) {
           setSuccess(
             "Registration successful! Your account is pending admin approval. You can login once approved.",
           );
@@ -226,6 +277,28 @@ export default function LoginPage() {
     set(
       "fuelTypes",
       form.fuelTypes.filter((_, idx) => idx !== i),
+    );
+
+  // Charging type helpers
+  const addChargingType = () =>
+    set("chargingTypes", [
+      ...form.chargingTypes,
+      {
+        vehicleType: "4-wheeler",
+        connectorType: "Type2",
+        pricePerKwh: "",
+        available: true,
+      },
+    ]);
+  const updateChargingType = (i, field, value) => {
+    const u = [...form.chargingTypes];
+    u[i] = { ...u[i], [field]: value };
+    set("chargingTypes", u);
+  };
+  const removeChargingType = (i) =>
+    set(
+      "chargingTypes",
+      form.chargingTypes.filter((_, idx) => idx !== i),
     );
 
   return (
@@ -534,6 +607,148 @@ export default function LoginPage() {
                       </button>
                     </motion.div>
                   )}
+                  {form.role === "chargingStation" && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="space-y-4 overflow-hidden"
+                    >
+                      <div className="border-t border-white/8 pt-4">
+                        <p className="text-green-400 text-xs font-semibold mb-3 flex items-center gap-1.5">
+                          <BatteryCharging className="w-3.5 h-3.5" /> Charging
+                          Station Details
+                        </p>
+                      </div>
+                      <InputField
+                        icon={<FileText className="w-4 h-4" />}
+                        placeholder="License Number"
+                        value={form.licenseNumber}
+                        onChange={(v) => set("licenseNumber", v)}
+                      />
+                      <div className="space-y-2">
+                        <p className="text-slate-300 text-xs font-medium">
+                          Charging Types & Prices (₹/kWh)
+                        </p>
+                        {form.chargingTypes.map((ct, i) => (
+                          <div
+                            key={i}
+                            className="space-y-2 p-3 bg-slate-800/50 rounded-xl"
+                          >
+                            <div className="flex gap-2">
+                              <select
+                                value={ct.vehicleType}
+                                onChange={(e) =>
+                                  updateChargingType(
+                                    i,
+                                    "vehicleType",
+                                    e.target.value,
+                                  )
+                                }
+                                className="flex-1 bg-slate-800 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:border-green-500/50 outline-none"
+                              >
+                                <option value="2-wheeler">🛵 2-Wheeler</option>
+                                <option value="3-wheeler">🛺 3-Wheeler</option>
+                                <option value="4-wheeler">🚗 4-Wheeler</option>
+                                <option value="commercial">
+                                  🚛 Commercial
+                                </option>
+                              </select>
+                              <select
+                                value={ct.connectorType}
+                                onChange={(e) =>
+                                  updateChargingType(
+                                    i,
+                                    "connectorType",
+                                    e.target.value,
+                                  )
+                                }
+                                className="flex-1 bg-slate-800 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:border-green-500/50 outline-none"
+                              >
+                                <option value="Type2">Type 2 (AC)</option>
+                                <option value="CCS2">CCS2 (DC Fast)</option>
+                                <option value="CHAdeMO">CHAdeMO</option>
+                                <option value="GBT">GB/T</option>
+                              </select>
+                            </div>
+                            <div className="flex gap-2 items-center">
+                              <InputField
+                                icon={<IndianRupee className="w-4 h-4" />}
+                                type="number"
+                                placeholder="Price per kWh"
+                                value={ct.pricePerKwh}
+                                onChange={(v) =>
+                                  updateChargingType(i, "pricePerKwh", v)
+                                }
+                              />
+                              {form.chargingTypes.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => removeChargingType(i)}
+                                  className="text-red-400 hover:text-red-300 text-sm px-2"
+                                >
+                                  ✕
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={addChargingType}
+                          className="text-sm text-green-400 hover:text-green-300"
+                        >
+                          + Add Charging Type
+                        </button>
+                      </div>
+                      <div className="flex gap-3">
+                        <InputField
+                          icon={<Truck className="w-4 h-4" />}
+                          type="number"
+                          placeholder="Service Radius (km)"
+                          value={form.serviceRadius}
+                          onChange={(v) => set("serviceRadius", v)}
+                        />
+                        <InputField
+                          icon={<IndianRupee className="w-4 h-4" />}
+                          type="number"
+                          placeholder="Service Charges"
+                          value={form.serviceCharges}
+                          onChange={(v) => set("serviceCharges", v)}
+                        />
+                      </div>
+                      <InputField
+                        icon={<Clock className="w-4 h-4" />}
+                        type="number"
+                        placeholder="Est. Response Time (minutes)"
+                        value={form.estimatedResponseTime}
+                        onChange={(v) => set("estimatedResponseTime", v)}
+                      />
+                      <div className="flex gap-3">
+                        <InputField
+                          icon={<MapPin className="w-4 h-4" />}
+                          type="number"
+                          placeholder="Latitude"
+                          value={form.latitude}
+                          onChange={(v) => set("latitude", v)}
+                        />
+                        <InputField
+                          icon={<MapPin className="w-4 h-4" />}
+                          type="number"
+                          placeholder="Longitude"
+                          value={form.longitude}
+                          onChange={(v) => set("longitude", v)}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={detectLocation}
+                        className="w-full text-sm text-green-400 hover:text-green-300 border border-green-500/20 rounded-xl py-2 transition-colors"
+                      >
+                        Auto-Detect My Location
+                      </button>
+                    </motion.div>
+                  )}
                 </AnimatePresence>
               </>
             )}
@@ -565,6 +780,7 @@ export default function LoginPage() {
                   phone: "",
                   address: "",
                   role: "user",
+                  mechanicType: "car",
                   servicesOffered: "",
                   experience: "",
                   licenseNumber: "",
@@ -579,6 +795,18 @@ export default function LoginPage() {
                   deliveryRadius: "",
                   deliveryCharges: "",
                   minimumOrderQuantity: "",
+                  chargingTypes: [
+                    {
+                      vehicleType: "4-wheeler",
+                      connectorType: "CCS2",
+                      pricePerKwh: "",
+                      available: true,
+                    },
+                  ],
+                  mobileChargingAvailable: true,
+                  serviceRadius: "",
+                  serviceCharges: "",
+                  estimatedResponseTime: "",
                 });
               }}
               className="text-amber-400 hover:text-amber-300 font-medium"

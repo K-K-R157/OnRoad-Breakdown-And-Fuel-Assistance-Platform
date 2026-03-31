@@ -1,8 +1,10 @@
 const User = require("../models/User");
 const Mechanic = require("../models/Mechanic");
 const FuelStation = require("../models/FuelStation");
+const ChargingStation = require("../models/ChargingStation");
 const MechanicRequest = require("../models/Mechanicrequest");
 const FuelRequest = require("../models/Fuelrequest");
+const ChargingRequest = require("../models/ChargingRequest");
 const Feedback = require("../models/Feedback");
 
 exports.getDashboard = async (req, res) => {
@@ -11,17 +13,22 @@ exports.getDashboard = async (req, res) => {
       users,
       mechanics,
       fuelStations,
+      chargingStations,
       pendingMechanics,
       pendingFuelStations,
+      pendingChargingStations,
       activeMechanicRequests,
       activeFuelRequests,
+      activeChargingRequests,
       feedbackCount,
     ] = await Promise.all([
       User.countDocuments({ role: "user" }),
       Mechanic.countDocuments(),
       FuelStation.countDocuments(),
+      ChargingStation.countDocuments(),
       Mechanic.countDocuments({ isApproved: false }),
       FuelStation.countDocuments({ isApproved: false }),
+      ChargingStation.countDocuments({ isApproved: false }),
       MechanicRequest.countDocuments({
         status: {
           $in: ["pending", "accepted", "en-route", "arrived", "in-progress"],
@@ -30,6 +37,11 @@ exports.getDashboard = async (req, res) => {
       FuelRequest.countDocuments({
         status: {
           $in: ["pending", "confirmed", "preparing", "out-for-delivery"],
+        },
+      }),
+      ChargingRequest.countDocuments({
+        status: {
+          $in: ["pending", "confirmed", "dispatched", "arrived", "charging"],
         },
       }),
       Feedback.countDocuments(),
@@ -41,10 +53,13 @@ exports.getDashboard = async (req, res) => {
         users,
         mechanics,
         fuelStations,
+        chargingStations,
         pendingMechanics,
         pendingFuelStations,
+        pendingChargingStations,
         activeMechanicRequests,
         activeFuelRequests,
+        activeChargingRequests,
         feedbackCount,
       },
     });
@@ -285,6 +300,113 @@ exports.getAllFeedback = async (req, res) => {
     res
       .status(200)
       .json({ success: true, count: feedback.length, data: feedback });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/* ═══════════════════════ CHARGING STATIONS ═══════════════════════ */
+
+exports.getPendingChargingStations = async (req, res) => {
+  try {
+    const stations = await ChargingStation.find({ isApproved: false })
+      .select("-password")
+      .sort({ createdAt: -1 });
+
+    res
+      .status(200)
+      .json({ success: true, count: stations.length, data: stations });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.reviewChargingStation = async (req, res) => {
+  try {
+    const { action, rejectionReason = "" } = req.body;
+
+    if (!["approve", "reject"].includes(action)) {
+      return res.status(400).json({
+        success: false,
+        message: "action must be either 'approve' or 'reject'",
+      });
+    }
+
+    const station = await ChargingStation.findById(req.params.id);
+    if (!station) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Charging station not found" });
+    }
+
+    if (action === "approve") {
+      station.isApproved = true;
+      station.isVerified = true;
+      station.approvedBy = req.user._id;
+      station.approvedAt = new Date();
+      station.rejectionReason = undefined;
+    } else {
+      station.isApproved = false;
+      station.isVerified = false;
+      station.rejectionReason = rejectionReason || "Rejected by admin";
+    }
+
+    await station.save();
+
+    res.status(200).json({ success: true, data: station });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+/* ── List ALL charging stations (approved + pending) ── */
+exports.getAllChargingStations = async (req, res) => {
+  try {
+    const stations = await ChargingStation.find()
+      .select("-password")
+      .sort({ createdAt: -1 });
+    res
+      .status(200)
+      .json({ success: true, count: stations.length, data: stations });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/* ── Revoke (un-approve) an approved charging station ── */
+exports.revokeChargingStation = async (req, res) => {
+  try {
+    const station = await ChargingStation.findById(req.params.id);
+    if (!station)
+      return res
+        .status(404)
+        .json({ success: false, message: "Charging station not found" });
+
+    station.isApproved = false;
+    station.isVerified = false;
+    station.rejectionReason = "Revoked by admin";
+    await station.save();
+
+    res.status(200).json({ success: true, data: station });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+/* ── Active charging requests ── */
+exports.getActiveChargingRequests = async (req, res) => {
+  try {
+    const requests = await ChargingRequest.find({
+      status: {
+        $in: ["pending", "confirmed", "dispatched", "arrived", "charging"],
+      },
+    })
+      .populate("user", "name email phone")
+      .populate("chargingStation", "stationName ownerName email phone")
+      .sort({ createdAt: -1 });
+    res
+      .status(200)
+      .json({ success: true, count: requests.length, data: requests });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

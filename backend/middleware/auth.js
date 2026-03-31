@@ -2,6 +2,7 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const Mechanic = require("../models/Mechanic");
 const FuelStation = require("../models/FuelStation");
+const ChargingStation = require("../models/ChargingStation");
 
 exports.protect = async (req, res, next) => {
   let token;
@@ -32,6 +33,8 @@ exports.protect = async (req, res, next) => {
       req.user = await Mechanic.findById(decoded.id);
     } else if (decoded.role === "fuelStation") {
       req.user = await FuelStation.findById(decoded.id);
+    } else if (decoded.role === "chargingStation") {
+      req.user = await ChargingStation.findById(decoded.id);
     } else if (decoded.role === "admin") {
       req.user = await User.findById(decoded.id);
     }
