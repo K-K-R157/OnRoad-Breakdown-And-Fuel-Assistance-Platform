@@ -119,10 +119,12 @@ export const mechanicAPI = {
 
 /* ─── Fuel Stations ─── */
 export const fuelStationAPI = {
-  getNearby: (lng, lat, maxDistance = 10000) =>
-    request(
-      `/fuel-stations/nearby?longitude=${lng}&latitude=${lat}&maxDistance=${maxDistance}`,
-    ),
+  getNearby: (lng, lat, maxDistance = 10000, filters = {}) => {
+    let url = `/fuel-stations/nearby?longitude=${lng}&latitude=${lat}&maxDistance=${maxDistance}`;
+    if (filters.fuelType) url += `&fuelType=${filters.fuelType}`;
+    if (filters.deliveryOnly) url += `&deliveryOnly=true`;
+    return request(url);
+  },
 
   getProfile: (token) => request("/fuel-stations/me", { token }),
 

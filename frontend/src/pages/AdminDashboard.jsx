@@ -54,11 +54,6 @@ const TABS = [
     label: "Approve Charging Stations",
     icon: <BatteryCharging className="w-4 h-4" />,
   },
-  {
-    id: "profile",
-    label: "Profile",
-    icon: <Users className="w-4 h-4" />,
-  },
 ];
 
 export default function AdminDashboard() {
@@ -165,10 +160,13 @@ function OverviewTab({ token }) {
     users: () => adminAPI.getAllUsers(token),
     mechanics: () => adminAPI.getAllMechanics(token),
     fuelStations: () => adminAPI.getAllFuelStations(token),
+    chargingStations: () => adminAPI.getAllChargingStations(token),
     pendingMechanics: () => adminAPI.getPendingMechanics(token),
     pendingFuelStations: () => adminAPI.getPendingFuelStations(token),
+    pendingChargingStations: () => adminAPI.getPendingChargingStations(token),
     activeMechanicRequests: () => adminAPI.getActiveMechanicRequests(token),
     activeFuelRequests: () => adminAPI.getActiveFuelRequests(token),
+    activeChargingRequests: () => adminAPI.getActiveChargingRequests(token),
     feedbackCount: () => adminAPI.getAllFeedback(token),
   };
 
@@ -194,7 +192,10 @@ function OverviewTab({ token }) {
     setActionLoading(id);
     try {
       if (type === "mechanics") await adminAPI.revokeMechanic(token, id);
-      else await adminAPI.revokeFuelStation(token, id);
+      else if (type === "fuelStations")
+        await adminAPI.revokeFuelStation(token, id);
+      else if (type === "chargingStations")
+        await adminAPI.revokeChargingStation(token, id);
       setListData((prev) =>
         prev.map((item) =>
           item._id === id
@@ -215,7 +216,10 @@ function OverviewTab({ token }) {
     try {
       if (type === "pendingMechanics")
         await adminAPI.reviewMechanic(token, id, action);
-      else await adminAPI.reviewFuelStation(token, id, action);
+      else if (type === "pendingFuelStations")
+        await adminAPI.reviewFuelStation(token, id, action);
+      else if (type === "pendingChargingStations")
+        await adminAPI.reviewChargingStation(token, id, action);
       setListData((prev) => prev.filter((item) => item._id !== id));
       await refreshStats();
     } catch {
@@ -270,6 +274,16 @@ function OverviewTab({ token }) {
       ring: "ring-purple-500/40",
     },
     {
+      key: "chargingStations",
+      label: "Charging Stations",
+      value: stats.chargingStations,
+      icon: <BatteryCharging className="w-5 h-5" />,
+      color: "text-green-400",
+      bg: "bg-green-500/10",
+      border: "border-green-500/20",
+      ring: "ring-green-500/40",
+    },
+    {
       key: "pendingMechanics",
       label: "Pending Mechanics",
       value: stats.pendingMechanics,
@@ -281,13 +295,23 @@ function OverviewTab({ token }) {
     },
     {
       key: "pendingFuelStations",
-      label: "Pending Stations",
+      label: "Pending Fuel Stations",
       value: stats.pendingFuelStations,
       icon: <Clock className="w-5 h-5" />,
       color: "text-orange-400",
       bg: "bg-orange-500/10",
       border: "border-orange-500/20",
       ring: "ring-orange-500/40",
+    },
+    {
+      key: "pendingChargingStations",
+      label: "Pending Charging Stations",
+      value: stats.pendingChargingStations,
+      icon: <Clock className="w-5 h-5" />,
+      color: "text-lime-400",
+      bg: "bg-lime-500/10",
+      border: "border-lime-500/20",
+      ring: "ring-lime-500/40",
     },
     {
       key: "activeMechanicRequests",
@@ -310,6 +334,16 @@ function OverviewTab({ token }) {
       ring: "ring-cyan-500/40",
     },
     {
+      key: "activeChargingRequests",
+      label: "Active Charging Requests",
+      value: stats.activeChargingRequests,
+      icon: <Activity className="w-5 h-5" />,
+      color: "text-teal-400",
+      bg: "bg-teal-500/10",
+      border: "border-teal-500/20",
+      ring: "ring-teal-500/40",
+    },
+    {
       key: "feedbackCount",
       label: "Total Feedback",
       value: stats.feedbackCount,
@@ -325,10 +359,13 @@ function OverviewTab({ token }) {
     users: "All Registered Users",
     mechanics: "All Mechanics",
     fuelStations: "All Fuel Stations",
+    chargingStations: "All Charging Stations",
     pendingMechanics: "Pending Mechanic Approvals",
     pendingFuelStations: "Pending Fuel Station Approvals",
+    pendingChargingStations: "Pending Charging Station Approvals",
     activeMechanicRequests: "Active Mechanic Requests",
     activeFuelRequests: "Active Fuel Requests",
+    activeChargingRequests: "Active Charging Requests",
     feedbackCount: "All Feedback",
   };
 
@@ -363,6 +400,14 @@ function OverviewTab({ token }) {
             actionLoading={actionLoading}
           />
         );
+      case "chargingStations":
+        return (
+          <ChargingStationsList
+            data={listData}
+            onRevoke={(id) => handleRevoke("chargingStations", id)}
+            actionLoading={actionLoading}
+          />
+        );
       case "pendingMechanics":
         return (
           <PendingMechanicsList
@@ -383,10 +428,22 @@ function OverviewTab({ token }) {
             actionLoading={actionLoading}
           />
         );
+      case "pendingChargingStations":
+        return (
+          <PendingChargingStationsList
+            data={listData}
+            onReview={(id, action) =>
+              handleReview("pendingChargingStations", id, action)
+            }
+            actionLoading={actionLoading}
+          />
+        );
       case "activeMechanicRequests":
         return <ActiveMechanicRequestsList data={listData} />;
       case "activeFuelRequests":
         return <ActiveFuelRequestsList data={listData} />;
+      case "activeChargingRequests":
+        return <ActiveChargingRequestsList data={listData} />;
       case "feedbackCount":
         return <FeedbackList data={listData} />;
       default:
@@ -1142,6 +1199,321 @@ function FeedbackList({ data }) {
   );
 }
 
+/* ── All Charging Stations list (with revoke) ── */
+function ChargingStationsList({ data, onRevoke, actionLoading }) {
+  return (
+    <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
+      {data.map((s) => (
+        <div
+          key={s._id}
+          className="p-4 rounded-xl bg-slate-800/40 border border-white/5"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-full bg-green-500/10 border border-green-500/20 flex items-center justify-center text-green-400 font-bold text-sm shrink-0">
+              {(s.stationName || s.name)?.charAt(0)?.toUpperCase() || "C"}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="text-white font-medium truncate">
+                  {s.stationName || s.name}
+                </p>
+                <span
+                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    s.isApproved
+                      ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                      : "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"
+                  }`}
+                >
+                  {s.isApproved ? "APPROVED" : "PENDING"}
+                </span>
+                {s.mobileChargingAvailable && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-500/10 text-teal-400 border border-teal-500/20">
+                    MOBILE
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-3 text-xs text-slate-500 flex-wrap mt-0.5">
+                <span className="flex items-center gap-1">
+                  <Mail className="w-3 h-3" />
+                  {s.email}
+                </span>
+                {s.phone && (
+                  <span className="flex items-center gap-1">
+                    <Phone className="w-3 h-3" />
+                    {s.phone}
+                  </span>
+                )}
+                {s.address && (
+                  <span className="flex items-center gap-1">
+                    <MapPin className="w-3 h-3" />
+                    {s.address}
+                  </span>
+                )}
+              </div>
+              {s.chargingTypes?.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {s.chargingTypes.slice(0, 3).map((ct, i) => (
+                    <span
+                      key={i}
+                      className="text-[10px] bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full"
+                    >
+                      {ct.vehicleType} • {ct.connectorType}
+                    </span>
+                  ))}
+                  {s.chargingTypes.length > 3 && (
+                    <span className="text-[10px] text-slate-500">
+                      +{s.chargingTypes.length - 3} more
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-[10px] text-slate-600">
+                {new Date(s.createdAt).toLocaleDateString()}
+              </span>
+              {s.isApproved && (
+                <button
+                  onClick={() => onRevoke(s._id)}
+                  disabled={actionLoading === s._id}
+                  className="flex items-center gap-1 text-xs bg-red-500/10 text-red-400 border border-red-500/20 px-3 py-1.5 rounded-lg hover:bg-red-500/20 transition-colors disabled:opacity-50"
+                >
+                  {actionLoading === s._id ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Ban className="w-3 h-3" />
+                  )}
+                  Revoke
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ── Pending Charging Stations list (with expandable details + approve/reject) ── */
+function PendingChargingStationsList({ data, onReview, actionLoading }) {
+  const [expandedId, setExpandedId] = useState(null);
+  return (
+    <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+      {data.map((s) => (
+        <div
+          key={s._id}
+          className="rounded-xl bg-slate-800/40 border border-white/5 overflow-hidden"
+        >
+          <div
+            className="p-4 flex items-start justify-between gap-4 cursor-pointer"
+            onClick={() => setExpandedId(expandedId === s._id ? null : s._id)}
+          >
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="w-10 h-10 rounded-full bg-lime-500/10 border border-lime-500/20 flex items-center justify-center text-lime-400 font-bold text-sm shrink-0">
+                {(s.stationName || s.name)?.charAt(0)?.toUpperCase() || "C"}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-white font-medium truncate">
+                    {s.stationName || s.name}
+                  </p>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-lime-500/10 text-lime-400 border border-lime-500/20">
+                    PENDING
+                  </span>
+                  {s.mobileChargingAvailable && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-500/10 text-teal-400 border border-teal-500/20">
+                      MOBILE
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-3 text-xs text-slate-500 flex-wrap mt-0.5">
+                  <span className="flex items-center gap-1">
+                    <Mail className="w-3 h-3" />
+                    {s.email}
+                  </span>
+                  {s.phone && (
+                    <span className="flex items-center gap-1">
+                      <Phone className="w-3 h-3" />
+                      {s.phone}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 text-slate-500">
+              {expandedId === s._id ? (
+                <ChevronUp className="w-5 h-5" />
+              ) : (
+                <ChevronDown className="w-5 h-5" />
+              )}
+            </div>
+          </div>
+
+          <AnimatePresence>
+            {expandedId === s._id && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="px-4 pb-4 border-t border-white/5 pt-3 space-y-3">
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <p className="text-slate-600 text-xs">Owner</p>
+                      <p className="text-slate-300">{s.ownerName || "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-600 text-xs">License</p>
+                      <p className="text-slate-300">
+                        {s.licenseNumber || "N/A"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-slate-600 text-xs">Address</p>
+                      <p className="text-slate-300">{s.address || "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-600 text-xs">Service Radius</p>
+                      <p className="text-slate-300">
+                        {s.serviceRadius ? `${s.serviceRadius} km` : "N/A"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-slate-600 text-xs">Service Charges</p>
+                      <p className="text-slate-300">
+                        {s.serviceCharges ? `₹${s.serviceCharges}` : "N/A"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-slate-600 text-xs">Response Time</p>
+                      <p className="text-slate-300">
+                        {s.estimatedResponseTime
+                          ? `~${s.estimatedResponseTime} min`
+                          : "N/A"}
+                      </p>
+                    </div>
+                  </div>
+                  {s.chargingTypes?.length > 0 && (
+                    <div>
+                      <p className="text-slate-600 text-xs mb-1">
+                        Charging Types
+                      </p>
+                      <div className="flex flex-wrap gap-1">
+                        {s.chargingTypes.map((ct, i) => (
+                          <span
+                            key={i}
+                            className={`text-xs px-2 py-1 rounded-lg ${
+                              ct.available
+                                ? "bg-green-500/10 text-green-400 border border-green-500/20"
+                                : "bg-red-500/10 text-red-400 border border-red-500/20"
+                            }`}
+                          >
+                            {ct.vehicleType} • {ct.connectorType} - ₹
+                            {ct.pricePerKwh}/kWh
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      onClick={() => onReview(s._id, "approve")}
+                      disabled={actionLoading === s._id}
+                      className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-5 py-2 rounded-xl transition-all active:scale-95 disabled:opacity-50"
+                    >
+                      {actionLoading === s._id ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="w-4 h-4" />
+                      )}{" "}
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => onReview(s._id, "reject")}
+                      disabled={actionLoading === s._id}
+                      className="flex items-center gap-2 bg-red-500/10 text-red-400 border border-red-500/20 px-5 py-2 rounded-xl hover:bg-red-500/20 transition-colors disabled:opacity-50"
+                    >
+                      {actionLoading === s._id ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <XCircle className="w-4 h-4" />
+                      )}{" "}
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ── Active Charging Requests list ── */
+function ActiveChargingRequestsList({ data }) {
+  const statusColors = {
+    pending: "text-yellow-400 bg-yellow-500/10 border-yellow-500/20",
+    confirmed: "text-blue-400 bg-blue-500/10 border-blue-500/20",
+    dispatched: "text-purple-400 bg-purple-500/10 border-purple-500/20",
+    arrived: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20",
+    charging: "text-green-400 bg-green-500/10 border-green-500/20",
+  };
+  return (
+    <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
+      {data.map((r) => (
+        <div
+          key={r._id}
+          className="p-4 rounded-xl bg-slate-800/40 border border-white/5"
+        >
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap mb-1">
+                <span className="text-white font-medium">
+                  {r.user?.name || "User"}
+                </span>
+                <span className="text-slate-600">→</span>
+                <span className="text-green-400 font-medium">
+                  {r.chargingStation?.stationName ||
+                    r.chargingStation?.name ||
+                    "Station"}
+                </span>
+                <span
+                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${statusColors[r.status] || "text-slate-400 bg-slate-500/10 border-slate-500/20"}`}
+                >
+                  {r.status?.toUpperCase()}
+                </span>
+              </div>
+              <div className="flex items-center gap-3 text-xs text-slate-500 mt-0.5 flex-wrap">
+                <span className="flex items-center gap-1">
+                  <BatteryCharging className="w-3 h-3" />
+                  {r.vehicleType} • {r.connectorType}
+                </span>
+                <span>
+                  {r.currentBatteryPercent}% → {r.targetBatteryPercent}%
+                </span>
+                <span className="flex items-center gap-0.5">
+                  <IndianRupee className="w-3 h-3" />
+                  {r.totalPrice}
+                </span>
+                {r.address && (
+                  <span className="flex items-center gap-1">
+                    <MapPin className="w-3 h-3" />
+                    {r.address}
+                  </span>
+                )}
+                <span>{new Date(r.createdAt).toLocaleString()}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /* ════════════════════════ MECHANICS TAB ════════════════════════ */
 function MechanicsTab({ token }) {
   const [mechanics, setMechanics] = useState([]);
@@ -1604,8 +1976,8 @@ function ChargingStationsTab({ token }) {
     <div className="space-y-6">
       <div className="glass rounded-2xl p-6 border border-white/8">
         <h2 className="text-lg font-semibold text-white mb-1 flex items-center gap-2">
-          <BatteryCharging className="w-5 h-5 text-green-400" /> Pending Charging
-          Station Approvals
+          <BatteryCharging className="w-5 h-5 text-green-400" /> Pending
+          Charging Station Approvals
         </h2>
         <p className="text-slate-400 text-sm">
           Verify EV charging station details before making them visible to
@@ -1697,7 +2069,9 @@ function ChargingStationsTab({ token }) {
                         />
                         <Detail
                           label="Service Radius"
-                          value={s.serviceRadius ? `${s.serviceRadius} km` : "N/A"}
+                          value={
+                            s.serviceRadius ? `${s.serviceRadius} km` : "N/A"
+                          }
                         />
                         <Detail
                           label="Service Charges"

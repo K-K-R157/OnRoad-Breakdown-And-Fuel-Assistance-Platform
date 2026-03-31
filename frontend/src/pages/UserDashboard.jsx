@@ -658,21 +658,35 @@ function SearchFuelTab({ token }) {
   const [manualLat, setManualLat] = useState("");
   const [manualLng, setManualLng] = useState("");
   const [searchRadius, setSearchRadius] = useState(50);
+  const [fuelTypeFilter, setFuelTypeFilter] = useState("");
 
-  const searchNearby = useCallback(async (lat, lng, radiusKm = 50) => {
-    setLoading(true);
-    setError("");
-    try {
-      const res = await fuelStationAPI.getNearby(lng, lat, radiusKm * 1000);
-      setStations(res.data || []);
-      if ((res.data || []).length === 0)
-        setError("No fuel stations found nearby.");
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const FUEL_TYPE_OPTIONS = [
+    { id: "", label: "All Fuel Types", emoji: "⛽" },
+    { id: "Petrol", label: "Petrol", emoji: "🔴" },
+    { id: "Diesel", label: "Diesel", emoji: "🟢" },
+    { id: "CNG", label: "CNG", emoji: "🔵" },
+    { id: "LPG", label: "LPG", emoji: "🟡" },
+  ];
+
+  const searchNearby = useCallback(
+    async (lat, lng, radiusKm = 50, filters = {}) => {
+      setLoading(true);
+      setError("");
+      try {
+        const res = await fuelStationAPI.getNearby(lng, lat, radiusKm * 1000, {
+          fuelType: filters.fuelType || undefined,
+        });
+        setStations(res.data || []);
+        if ((res.data || []).length === 0)
+          setError("No fuel stations found nearby.");
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
 
   const detectAndSearch = () => {
     if (navigator.geolocation) {
@@ -680,7 +694,9 @@ function SearchFuelTab({ token }) {
         (pos) => {
           const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
           setUserLoc(loc);
-          searchNearby(loc.lat, loc.lng, searchRadius);
+          searchNearby(loc.lat, loc.lng, searchRadius, {
+            fuelType: fuelTypeFilter,
+          });
         },
         () =>
           setError(
@@ -710,7 +726,7 @@ function SearchFuelTab({ token }) {
       return;
     }
     setUserLoc({ lat, lng });
-    searchNearby(lat, lng, searchRadius);
+    searchNearby(lat, lng, searchRadius, { fuelType: fuelTypeFilter });
   };
 
   const bookFuel = async () => {
@@ -751,18 +767,37 @@ function SearchFuelTab({ token }) {
           Locate the nearest fuel station, view fuel prices, and book fuel
           delivery to your location.
         </p>
-        <button
-          onClick={detectAndSearch}
-          disabled={loading}
-          className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold px-6 py-3 rounded-xl transition-all active:scale-95 disabled:opacity-50"
-        >
-          {loading ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
-          ) : (
-            <Navigation className="w-5 h-5" />
-          )}
-          {loading ? "Searching..." : "Find Fuel Stations"}
-        </button>
+        {/* Fuel Type Filter + Search Button */}
+        <div className="flex flex-wrap items-end gap-3 mb-4">
+          <div>
+            <label className="text-slate-500 text-[10px] mb-1 block">
+              Fuel Type
+            </label>
+            <select
+              value={fuelTypeFilter}
+              onChange={(e) => setFuelTypeFilter(e.target.value)}
+              className="w-48 bg-slate-800 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:border-amber-500/50 outline-none"
+            >
+              {FUEL_TYPE_OPTIONS.map((opt) => (
+                <option key={opt.id} value={opt.id}>
+                  {opt.emoji} {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button
+            onClick={detectAndSearch}
+            disabled={loading}
+            className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold px-6 py-2.5 rounded-xl transition-all active:scale-95 disabled:opacity-50"
+          >
+            {loading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <Navigation className="w-5 h-5" />
+            )}
+            {loading ? "Searching..." : "Find Fuel Stations"}
+          </button>
+        </div>
         {/* Manual Location Input */}
         <div className="mt-4 pt-4 border-t border-white/8">
           <p className="text-slate-400 text-xs mb-3">
@@ -1297,8 +1332,8 @@ function SearchChargingTab({ token }) {
           Locate the nearest mobile EV charging service, view charging prices,
           and book a charging slot to your location.
         </p>
-        {/* Filter options */}
-        <div className="grid grid-cols-2 gap-3 mb-4">
+        {/* Filter options + Search Button */}
+        <div className="flex flex-wrap items-end gap-3 mb-4">
           <div>
             <label className="text-slate-500 text-[10px] mb-1 block">
               Vehicle Type
@@ -1306,7 +1341,7 @@ function SearchChargingTab({ token }) {
             <select
               value={vehicleTypeFilter}
               onChange={(e) => setVehicleTypeFilter(e.target.value)}
-              className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:border-green-500/50 outline-none"
+              className="w-44 bg-slate-800 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:border-green-500/50 outline-none"
             >
               {VEHICLE_TYPE_OPTIONS.map((opt) => (
                 <option key={opt.id} value={opt.id}>
@@ -1322,7 +1357,7 @@ function SearchChargingTab({ token }) {
             <select
               value={connectorFilter}
               onChange={(e) => setConnectorFilter(e.target.value)}
-              className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:border-green-500/50 outline-none"
+              className="w-40 bg-slate-800 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:border-green-500/50 outline-none"
             >
               {CONNECTOR_TYPE_OPTIONS.map((opt) => (
                 <option key={opt.id} value={opt.id}>
@@ -1331,19 +1366,19 @@ function SearchChargingTab({ token }) {
               ))}
             </select>
           </div>
+          <button
+            onClick={detectAndSearch}
+            disabled={loading}
+            className="flex items-center gap-2 bg-green-500 hover:bg-green-400 text-slate-950 font-semibold px-6 py-2.5 rounded-xl transition-all active:scale-95 disabled:opacity-50"
+          >
+            {loading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <Navigation className="w-5 h-5" />
+            )}
+            {loading ? "Searching..." : "Find Charging Stations"}
+          </button>
         </div>
-        <button
-          onClick={detectAndSearch}
-          disabled={loading}
-          className="flex items-center gap-2 bg-green-500 hover:bg-green-400 text-slate-950 font-semibold px-6 py-3 rounded-xl transition-all active:scale-95 disabled:opacity-50"
-        >
-          {loading ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
-          ) : (
-            <Navigation className="w-5 h-5" />
-          )}
-          {loading ? "Searching..." : "Find Charging Stations"}
-        </button>
         {/* Manual Location Input */}
         <div className="mt-4 pt-4 border-t border-white/8">
           <p className="text-slate-400 text-xs mb-3">
@@ -1446,7 +1481,9 @@ function SearchChargingTab({ token }) {
                     <BatteryCharging className="w-6 h-6" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h4 className="text-white font-semibold">{s.stationName}</h4>
+                    <h4 className="text-white font-semibold">
+                      {s.stationName}
+                    </h4>
                     <p className="text-slate-400 text-xs mt-0.5">
                       Owner: {s.ownerName}
                     </p>
@@ -1602,7 +1639,10 @@ function SearchChargingTab({ token }) {
                             ct.vehicleType === bookForm.vehicleType,
                         )
                         .map((ct) => (
-                          <option key={ct.connectorType} value={ct.connectorType}>
+                          <option
+                            key={ct.connectorType}
+                            value={ct.connectorType}
+                          >
                             {ct.connectorType} - ₹{ct.pricePerKwh}/kWh
                           </option>
                         ))}
@@ -1706,7 +1746,8 @@ function SearchChargingTab({ token }) {
                 <div className="bg-slate-800/50 rounded-xl p-3 border border-white/5">
                   <div className="flex justify-between text-sm text-slate-300">
                     <span>
-                      Energy (~{calculateEstimate().energyNeeded.toFixed(1)} kWh)
+                      Energy (~{calculateEstimate().energyNeeded.toFixed(1)}{" "}
+                      kWh)
                     </span>
                     <span>
                       ₹
