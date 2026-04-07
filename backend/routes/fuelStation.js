@@ -6,6 +6,7 @@ const {
   updateFuelTypes,
   getFuelStationRequests,
   updateFuelRequestStatus,
+  getFuelStationStats,
 } = require("../controllers/fuelStationController");
 const { protect, authorize } = require("../middleware/auth");
 
@@ -19,5 +20,6 @@ router.put("/me", updateFuelStationProfile);
 router.patch("/fuel-types", updateFuelTypes);
 router.get("/requests", getFuelStationRequests);
 router.patch("/requests/:id/status", updateFuelRequestStatus);
+router.get("/stats", getFuelStationStats);
 
 module.exports = router;

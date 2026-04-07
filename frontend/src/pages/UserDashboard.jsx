@@ -30,6 +30,9 @@ import {
   BatteryCharging,
   Plug,
   Battery,
+  Banknote,
+  Smartphone,
+  CreditCard,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -70,6 +73,24 @@ const STATUS_COLORS = {
   "out-for-delivery": "bg-purple-500/10 text-purple-400 border-purple-500/20",
   delivered: "bg-green-500/10 text-green-400 border-green-500/20",
 };
+
+const PAYMENT_METHODS = [
+  {
+    id: "cash",
+    label: "Cash",
+    icon: <Banknote className="w-5 h-5" />,
+  },
+  {
+    id: "upi",
+    label: "UPI",
+    icon: <Smartphone className="w-5 h-5" />,
+  },
+  {
+    id: "card",
+    label: "Card",
+    icon: <CreditCard className="w-5 h-5" />,
+  },
+];
 
 const MECHANIC_TYPE_OPTIONS = [
   { id: "", label: "All Types", emoji: "🔧", color: "slate" },
@@ -165,6 +186,7 @@ function SearchMechanicsTab({ token }) {
   const [requestForm, setRequestForm] = useState({
     problemDescription: "",
     address: "",
+    paymentMethod: "cash",
   });
   const [vehiclePhoto, setVehiclePhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
@@ -256,6 +278,7 @@ function SearchMechanicsTab({ token }) {
         mechanicId: selectedMechanic._id,
         problemDescription: requestForm.problemDescription,
         address: requestForm.address || selectedMechanic.address,
+        paymentMethod: requestForm.paymentMethod,
         location: userLoc
           ? { type: "Point", coordinates: [userLoc.lng, userLoc.lat] }
           : undefined,
@@ -269,7 +292,11 @@ function SearchMechanicsTab({ token }) {
       );
       setShowRequestForm(false);
       setSelectedMechanic(null);
-      setRequestForm({ problemDescription: "", address: "" });
+      setRequestForm({
+        problemDescription: "",
+        address: "",
+        paymentMethod: "cash",
+      });
       setVehiclePhoto(null);
       setPhotoPreview(null);
     } catch (err) {
@@ -566,6 +593,27 @@ function SearchMechanicsTab({ token }) {
                   }
                   className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder:text-slate-500 focus:border-amber-500/50 outline-none"
                 />
+                <div>
+                  <label className="text-slate-400 text-xs mb-1 block">
+                    Payment Method
+                  </label>
+                  <select
+                    value={requestForm.paymentMethod}
+                    onChange={(e) =>
+                      setRequestForm((p) => ({
+                        ...p,
+                        paymentMethod: e.target.value,
+                      }))
+                    }
+                    className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:border-amber-500/50 outline-none"
+                  >
+                    {PAYMENT_METHODS.map((method) => (
+                      <option key={method.id} value={method.id}>
+                        {method.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 {/* Optional Vehicle Photo */}
                 <div>
                   <label className="text-slate-400 text-xs mb-1.5 block">
@@ -1083,8 +1131,11 @@ function SearchFuelTab({ token }) {
                     }
                     className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:border-amber-500/50 outline-none"
                   >
-                    <option value="cash">Cash on Delivery</option>
-                    <option value="online">Online Payment</option>
+                    {PAYMENT_METHODS.map((method) => (
+                      <option key={method.id} value={method.id}>
+                        {method.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 {/* Price estimate */}
@@ -1736,10 +1787,11 @@ function SearchChargingTab({ token }) {
                     }
                     className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:border-green-500/50 outline-none"
                   >
-                    <option value="cash">Cash on Delivery</option>
-                    <option value="upi">UPI</option>
-                    <option value="card">Card</option>
-                    <option value="online">Online Payment</option>
+                    {PAYMENT_METHODS.map((method) => (
+                      <option key={method.id} value={method.id}>
+                        {method.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 {/* Price estimate */}

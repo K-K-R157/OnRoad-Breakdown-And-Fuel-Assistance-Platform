@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { fuelStationAPI, feedbackAPI } from "../utils/api";
+import StatsModal from "../components/StatsModal";
 
 const TABS = [
   {
@@ -125,17 +126,26 @@ export default function FuelStationDashboard() {
 /* ════════════════════════ BOOKINGS TAB ════════════════════════ */
 function BookingsTab({ token }) {
   const [requests, setRequests] = useState([]);
+  const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [showStatsModal, setShowStatsModal] = useState(false);
+  const [modalData, setModalData] = useState([]);
+  const [modalTitle, setModalTitle] = useState("");
+  const [modalLoading, setModalLoading] = useState(false);
 
   useEffect(() => {
-    loadBookings();
+    loadData();
   }, [token]);
 
-  const loadBookings = async () => {
+  const loadData = async () => {
     try {
-      const res = await fuelStationAPI.getRequests(token);
-      setRequests(res.data || []);
+      const [reqRes, statsRes] = await Promise.all([
+        fuelStationAPI.getRequests(token),
+        fuelStationAPI.getStats(token),
+      ]);
+      setRequests(reqRes.data || []);
+      setStats(statsRes.data || {});
     } catch (err) {
       setError(err.message);
     } finally {
@@ -156,6 +166,7 @@ function BookingsTab({ token }) {
       setRequests((prev) =>
         prev.map((r) => (r._id === id ? { ...r, status } : r)),
       );
+      loadData(); // Reload to update stats
     } catch (err) {
       setError(err.message);
     }
@@ -202,24 +213,66 @@ function BookingsTab({ token }) {
         {[
           {
             label: "New Orders",
-            value: pending.length,
+            value: stats?.pending || 0,
             color: "text-yellow-400",
+            filter: "pending",
           },
-          { label: "Active", value: active.length, color: "text-blue-400" },
           {
-            label: "Delivered",
-            value: history.filter((r) => r.status === "delivered").length,
-            color: "text-green-400",
+            label: "Active",
+            value: stats?.active || 0,
+            color: "text-blue-400",
+            filter: "active",
           },
-          { label: "Total", value: requests.length, color: "text-amber-400" },
+          {
+            label: "Delivered Today",
+            value: stats?.completedToday || 0,
+            color: "text-green-400",
+            filter: "completedToday",
+          },
+          {
+            label: "Total Delivered",
+            value: stats?.totalCompleted || 0,
+            color: "text-slate-400",
+            filter: "totalCompleted",
+          },
         ].map((s) => (
-          <div
+          <button
             key={s.label}
-            className="glass rounded-xl p-4 border border-white/8"
+            onClick={() => {
+              let filtered = [];
+              let title = s.label;
+
+              if (s.filter === "pending") {
+                filtered = requests.filter((r) => r.status === "pending");
+              } else if (s.filter === "active") {
+                filtered = requests.filter((r) =>
+                  ["confirmed", "preparing", "out-for-delivery"].includes(
+                    r.status,
+                  ),
+                );
+              } else if (s.filter === "completedToday") {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                filtered = requests.filter(
+                  (r) =>
+                    r.status === "delivered" &&
+                    new Date(r.updatedAt) >= today,
+                );
+                title = "Delivered Today";
+              } else if (s.filter === "totalCompleted") {
+                filtered = requests.filter((r) => r.status === "delivered");
+                title = "All Delivered Orders";
+              }
+
+              setModalTitle(title);
+              setModalData(filtered);
+              setShowStatsModal(true);
+            }}
+            className="glass rounded-xl p-4 border border-white/8 hover:bg-white/5 transition-all cursor-pointer text-left"
           >
             <p className="text-slate-500 text-xs">{s.label}</p>
             <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
-          </div>
+          </button>
         ))}
       </div>
 
@@ -290,6 +343,15 @@ function BookingsTab({ token }) {
           No bookings yet. Users will book fuel delivery from your station.
         </p>
       )}
+
+      {/* Stats Modal */}
+      <StatsModal
+        isOpen={showStatsModal}
+        onClose={() => setShowStatsModal(false)}
+        title={modalTitle}
+        data={modalData}
+        loading={modalLoading}
+      />
     </div>
   );
 }
@@ -478,7 +540,7 @@ function StationProfileTab({ token }) {
     );
 
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className="max-w-2xl mx-auto space-y-6">
       <div className="glass rounded-2xl p-6 border border-white/8">
         <h2 className="text-lg font-semibold text-white mb-2 flex items-center gap-2">
           <Settings className="w-5 h-5 text-amber-400" /> Station Details

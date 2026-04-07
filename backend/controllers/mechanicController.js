@@ -119,3 +119,43 @@ exports.updateMechanicRequestStatus = async (req, res) => {
     res.status(400).json({ success: false, message: error.message });
   }
 };
+
+exports.getMechanicStats = async (req, res) => {
+  try {
+    const today = new Date();
+    const startOfToday = new Date(today.setHours(0, 0, 0, 0));
+
+    const [pendingCount, activeCount, completedToday, totalCompleted] =
+      await Promise.all([
+        MechanicRequest.countDocuments({
+          mechanic: req.user._id,
+          status: "pending",
+        }),
+        MechanicRequest.countDocuments({
+          mechanic: req.user._id,
+          status: { $in: ["accepted", "en-route", "arrived", "in-progress"] },
+        }),
+        MechanicRequest.countDocuments({
+          mechanic: req.user._id,
+          status: "completed",
+          completedAt: { $gte: startOfToday },
+        }),
+        MechanicRequest.countDocuments({
+          mechanic: req.user._id,
+          status: "completed",
+        }),
+      ]);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        pending: pendingCount,
+        active: activeCount,
+        completedToday,
+        totalCompleted,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

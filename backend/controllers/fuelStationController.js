@@ -8,12 +8,10 @@ exports.getNearbyFuelStations = async (req, res) => {
     const latitude = Number(req.query.latitude);
 
     if (Number.isNaN(longitude) || Number.isNaN(latitude)) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Valid longitude and latitude are required",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Valid longitude and latitude are required",
+      });
     }
 
     const stations = await FuelStation.findNearby(
@@ -78,12 +76,10 @@ exports.updateFuelTypes = async (req, res) => {
   try {
     const { fuelTypes } = req.body;
     if (!Array.isArray(fuelTypes) || fuelTypes.length === 0) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "fuelTypes must be a non-empty array",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "fuelTypes must be a non-empty array",
+      });
     }
 
     const station = await FuelStation.findByIdAndUpdate(
@@ -145,5 +141,45 @@ exports.updateFuelRequestStatus = async (req, res) => {
     res.status(200).json({ success: true, data: request });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+exports.getFuelStationStats = async (req, res) => {
+  try {
+    const today = new Date();
+    const startOfToday = new Date(today.setHours(0, 0, 0, 0));
+
+    const [pendingCount, activeCount, completedToday, totalCompleted] =
+      await Promise.all([
+        FuelRequest.countDocuments({
+          fuelStation: req.user._id,
+          status: "pending",
+        }),
+        FuelRequest.countDocuments({
+          fuelStation: req.user._id,
+          status: { $in: ["confirmed", "preparing", "out-for-delivery"] },
+        }),
+        FuelRequest.countDocuments({
+          fuelStation: req.user._id,
+          status: "delivered",
+          deliveredAt: { $gte: startOfToday },
+        }),
+        FuelRequest.countDocuments({
+          fuelStation: req.user._id,
+          status: "delivered",
+        }),
+      ]);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        pending: pendingCount,
+        active: activeCount,
+        completedToday,
+        totalCompleted,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };

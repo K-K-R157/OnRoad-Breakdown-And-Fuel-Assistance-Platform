@@ -115,6 +115,8 @@ export const mechanicAPI = {
       token,
       body: { status, ...extras },
     }),
+
+  getStats: (token) => request("/mechanics/stats", { token }),
 };
 
 /* ─── Fuel Stations ─── */
@@ -146,6 +148,8 @@ export const fuelStationAPI = {
       token,
       body: { status, ...extras },
     }),
+
+  getStats: (token) => request("/fuel-stations/stats", { token }),
 };
 
 /* ─── Charging Stations ─── */

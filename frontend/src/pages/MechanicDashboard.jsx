@@ -25,6 +25,7 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { mechanicAPI, feedbackAPI } from "../utils/api";
 import LiveTrackingMap from "../components/LiveTrackingMap";
+import StatsModal from "../components/StatsModal";
 
 const TABS = [
   {
@@ -130,13 +131,18 @@ export default function MechanicDashboard() {
 /* ════════════════════════ REQUESTS TAB ════════════════════════ */
 function RequestsTab({ token }) {
   const [requests, setRequests] = useState([]);
+  const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [trackingReq, setTrackingReq] = useState(null);
   const [userLoc, setUserLoc] = useState(null);
+  const [showStatsModal, setShowStatsModal] = useState(false);
+  const [modalData, setModalData] = useState([]);
+  const [modalTitle, setModalTitle] = useState("");
+  const [modalLoading, setModalLoading] = useState(false);
 
   useEffect(() => {
-    loadRequests();
+    loadData();
     // Detect mechanic's location for tracking
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -147,10 +153,14 @@ function RequestsTab({ token }) {
     }
   }, [token]);
 
-  const loadRequests = async () => {
+  const loadData = async () => {
     try {
-      const res = await mechanicAPI.getRequests(token);
-      setRequests(res.data || []);
+      const [reqRes, statsRes] = await Promise.all([
+        mechanicAPI.getRequests(token),
+        mechanicAPI.getStats(token),
+      ]);
+      setRequests(reqRes.data || []);
+      setStats(statsRes.data || {});
     } catch (err) {
       setError(err.message);
     } finally {
@@ -164,6 +174,7 @@ function RequestsTab({ token }) {
       setRequests((prev) =>
         prev.map((r) => (r._id === id ? { ...r, status } : r)),
       );
+      loadData(); // Reload to update stats
     } catch (err) {
       setError(err.message);
     }
@@ -177,6 +188,7 @@ function RequestsTab({ token }) {
       setRequests((prev) =>
         prev.map((r) => (r._id === id ? { ...r, status: "cancelled" } : r)),
       );
+      loadData(); // Reload to update stats
     } catch (err) {
       setError(err.message);
     }
@@ -217,36 +229,70 @@ function RequestsTab({ token }) {
         {[
           {
             label: "New Requests",
-            value: pending.length,
+            value: stats?.pending || 0,
             color: "text-yellow-400",
             bg: "bg-yellow-500/10",
+            filter: "pending",
           },
           {
             label: "Active",
-            value: active.length,
+            value: stats?.active || 0,
             color: "text-blue-400",
             bg: "bg-blue-500/10",
+            filter: "active",
           },
           {
-            label: "Completed",
-            value: history.filter((r) => r.status === "completed").length,
+            label: "Completed Today",
+            value: stats?.completedToday || 0,
             color: "text-green-400",
             bg: "bg-green-500/10",
+            filter: "completedToday",
           },
           {
-            label: "Total",
-            value: requests.length,
-            color: "text-amber-400",
-            bg: "bg-amber-500/10",
+            label: "Total Completed",
+            value: stats?.totalCompleted || 0,
+            color: "text-slate-400",
+            bg: "bg-slate-800/50",
+            filter: "totalCompleted",
           },
         ].map((s) => (
-          <div
+          <button
             key={s.label}
-            className="glass rounded-xl p-4 border border-white/8"
+            onClick={() => {
+              let filtered = [];
+              let title = s.label;
+
+              if (s.filter === "pending") {
+                filtered = requests.filter((r) => r.status === "pending");
+              } else if (s.filter === "active") {
+                filtered = requests.filter((r) =>
+                  ["accepted", "en-route", "arrived", "in-progress"].includes(
+                    r.status,
+                  ),
+                );
+              } else if (s.filter === "completedToday") {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                filtered = requests.filter(
+                  (r) =>
+                    r.status === "completed" &&
+                    new Date(r.updatedAt) >= today,
+                );
+                title = "Completed Today";
+              } else if (s.filter === "totalCompleted") {
+                filtered = requests.filter((r) => r.status === "completed");
+                title = "All Completed Requests";
+              }
+
+              setModalTitle(title);
+              setModalData(filtered);
+              setShowStatsModal(true);
+            }}
+            className="glass rounded-xl p-4 border border-white/8 hover:bg-white/5 transition-all cursor-pointer text-left"
           >
             <p className="text-slate-500 text-xs">{s.label}</p>
             <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
-          </div>
+          </button>
         ))}
       </div>
 
@@ -369,6 +415,15 @@ function RequestsTab({ token }) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Stats Modal */}
+      <StatsModal
+        isOpen={showStatsModal}
+        onClose={() => setShowStatsModal(false)}
+        title={modalTitle}
+        data={modalData}
+        loading={modalLoading}
+      />
     </div>
   );
 }

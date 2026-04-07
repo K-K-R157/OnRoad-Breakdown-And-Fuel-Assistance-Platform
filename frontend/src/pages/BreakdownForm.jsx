@@ -19,6 +19,9 @@ import {
   Fuel,
   Wind,
   Wrench,
+  Banknote,
+  Smartphone,
+  CreditCard,
 } from "lucide-react";
 import { userAPI, mechanicAPI } from "../utils/api";
 import { useAuth } from "../context/AuthContext";
@@ -83,6 +86,24 @@ const ISSUE_TYPES = [
     label: "Other",
     icon: <Car className="w-6 h-6" />,
     color: "slate",
+  },
+];
+
+const PAYMENT_METHODS = [
+  {
+    id: "cash",
+    label: "Cash",
+    icon: <Banknote className="w-5 h-5" />,
+  },
+  {
+    id: "upi",
+    label: "UPI",
+    icon: <Smartphone className="w-5 h-5" />,
+  },
+  {
+    id: "card",
+    label: "Card",
+    icon: <CreditCard className="w-5 h-5" />,
   },
 ];
 
@@ -495,6 +516,32 @@ function DetailsStep({ form, setForm }) {
         onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
         className="mt-6 w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30 transition-colors text-sm resize-none"
       />
+
+      {/* Payment Method */}
+      <div className="mt-6">
+        <label className="text-white font-semibold text-sm mb-3 block">
+          Payment Method
+        </label>
+        <div className="grid grid-cols-3 gap-3">
+          {PAYMENT_METHODS.map((method) => (
+            <button
+              key={method.id}
+              type="button"
+              onClick={() =>
+                setForm((f) => ({ ...f, paymentMethod: method.id }))
+              }
+              className={`flex flex-col items-center gap-2 px-4 py-3 rounded-xl border transition-all ${
+                form.paymentMethod === method.id
+                  ? "bg-emerald-500 border-emerald-500 text-white"
+                  : "bg-slate-800/50 border-white/10 text-slate-400 hover:border-white/20 hover:text-white"
+              }`}
+            >
+              {method.icon}
+              <span className="text-sm font-medium">{method.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -521,6 +568,12 @@ function ReviewStep({ form }) {
     },
     { label: "Issue", value: issueLabel },
     { label: "Urgency", value: URGENCY_LABELS[form.urgency ?? 1] },
+    {
+      label: "Payment",
+      value:
+        PAYMENT_METHODS.find((p) => p.id === form.paymentMethod)?.label ||
+        "Cash",
+    },
     { label: "Notes", value: form.notes || "None" },
   ];
 
@@ -588,6 +641,7 @@ export default function BreakdownForm() {
     notes: "",
     photoFile: null,
     photoPreview: null,
+    paymentMethod: "cash",
   });
 
   const canNext = useCallback(() => {
@@ -658,6 +712,7 @@ export default function BreakdownForm() {
             `${issueLabel} – ${form.vehicleType} – ${mechanicTypeLabel} – urgency ${form.urgency}. ${form.notes || ""}`.trim(),
           address: form.locationLabel || `${form.lat}, ${form.lng}`,
           location: loc,
+          paymentMethod: form.paymentMethod,
         });
       }
 

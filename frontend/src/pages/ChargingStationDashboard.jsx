@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { chargingStationAPI, feedbackAPI } from "../utils/api";
+import StatsModal from "../components/StatsModal";
 
 const TABS = [
   {
@@ -152,6 +153,9 @@ function BookingsTab({ token }) {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [showStatsModal, setShowStatsModal] = useState(false);
+  const [modalData, setModalData] = useState([]);
+  const [modalTitle, setModalTitle] = useState("");
 
   useEffect(() => {
     loadBookings();
@@ -229,22 +233,65 @@ function BookingsTab({ token }) {
             label: "New Requests",
             value: pending.length,
             color: "text-yellow-400",
+            filter: "pending",
           },
-          { label: "Active", value: active.length, color: "text-blue-400" },
           {
-            label: "Completed",
-            value: history.filter((r) => r.status === "completed").length,
-            color: "text-green-400",
+            label: "Active",
+            value: active.length,
+            color: "text-blue-400",
+            filter: "active",
           },
-          { label: "Total", value: requests.length, color: "text-green-400" },
+          {
+            label: "Completed Today",
+            value: requests.filter((r) => {
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+              return (
+                r.status === "completed" && new Date(r.updatedAt || r.createdAt) >= today
+              );
+            }).length,
+            color: "text-green-400",
+            filter: "completedToday",
+          },
+          {
+            label: "Total Completed",
+            value: requests.filter((r) => r.status === "completed").length,
+            color: "text-slate-400",
+            filter: "totalCompleted",
+          },
         ].map((s) => (
-          <div
+          <button
             key={s.label}
-            className="glass rounded-xl p-4 border border-white/8"
+            onClick={() => {
+              let filtered = [];
+              let title = s.label;
+
+              if (s.filter === "pending") {
+                filtered = pending;
+              } else if (s.filter === "active") {
+                filtered = active;
+              } else if (s.filter === "completedToday") {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                filtered = requests.filter(
+                  (r) =>
+                    r.status === "completed" &&
+                    new Date(r.updatedAt || r.createdAt) >= today,
+                );
+              } else if (s.filter === "totalCompleted") {
+                filtered = requests.filter((r) => r.status === "completed");
+                title = "All Completed Requests";
+              }
+
+              setModalTitle(title);
+              setModalData(filtered);
+              setShowStatsModal(true);
+            }}
+            className="glass rounded-xl p-4 border border-white/8 hover:bg-white/5 transition-all cursor-pointer text-left"
           >
             <p className="text-slate-500 text-xs">{s.label}</p>
             <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
-          </div>
+          </button>
         ))}
       </div>
 
@@ -316,6 +363,14 @@ function BookingsTab({ token }) {
           station.
         </p>
       )}
+
+      <StatsModal
+        isOpen={showStatsModal}
+        onClose={() => setShowStatsModal(false)}
+        title={modalTitle}
+        data={modalData}
+        loading={false}
+      />
     </div>
   );
 }

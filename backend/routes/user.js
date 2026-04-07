@@ -16,7 +16,7 @@ const { protect, authorize } = require("../middleware/auth");
 
 const router = express.Router();
 
-router.use(protect, authorize("user"));
+router.use(protect, authorize("user", "admin"));
 
 router.get("/me", getProfile);
 router.put("/me", updateProfile);
