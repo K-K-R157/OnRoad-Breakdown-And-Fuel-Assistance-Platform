@@ -275,8 +275,7 @@ function RequestsTab({ token }) {
                 today.setHours(0, 0, 0, 0);
                 filtered = requests.filter(
                   (r) =>
-                    r.status === "completed" &&
-                    new Date(r.updatedAt) >= today,
+                    r.status === "completed" && new Date(r.updatedAt) >= today,
                 );
                 title = "Completed Today";
               } else if (s.filter === "totalCompleted") {

@@ -255,8 +255,7 @@ function BookingsTab({ token }) {
                 today.setHours(0, 0, 0, 0);
                 filtered = requests.filter(
                   (r) =>
-                    r.status === "delivered" &&
-                    new Date(r.updatedAt) >= today,
+                    r.status === "delivered" && new Date(r.updatedAt) >= today,
                 );
                 title = "Delivered Today";
               } else if (s.filter === "totalCompleted") {
