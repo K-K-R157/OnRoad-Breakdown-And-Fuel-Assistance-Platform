@@ -1,6 +1,0 @@
-**/node_modules/
-frontend/dist/
-.env
-.env.example
-.DS_Store
-
