@@ -15,7 +15,13 @@ const server = http.createServer(app);
 
 const allowedOrigins = process.env.CLIENT_URL
   ? process.env.CLIENT_URL.split(",")
-  : ["http://localhost:5173"];
+  : [
+      "http://localhost:5173",
+      "http://localhost:8081",
+      "http://localhost:19006",
+      "http://127.0.0.1:8081",
+      "http://127.0.0.1:19006",
+    ];
 
 const io = new Server(server, {
   cors: {
@@ -91,6 +97,37 @@ io.on("connection", (socket) => {
       });
     }
   });
+
+  // User shares their location with fuel station delivery person
+  socket.on(
+    "location:share-user-fuel",
+    ({ requestId, fuelStationId, coords }) => {
+      if (requestId && fuelStationId && coords) {
+        io.to(`fuelStation:${fuelStationId}`).emit("location:user-update", {
+          requestId,
+          coords,
+          timestamp: Date.now(),
+        });
+      }
+    },
+  );
+
+  // User shares their location with charging station technician
+  socket.on(
+    "location:share-user-charging",
+    ({ requestId, chargingStationId, coords }) => {
+      if (requestId && chargingStationId && coords) {
+        io.to(`chargingStation:${chargingStationId}`).emit(
+          "location:user-update",
+          {
+            requestId,
+            coords,
+            timestamp: Date.now(),
+          },
+        );
+      }
+    },
+  );
 
   socket.on("disconnect", () => {
     // Keep empty for now; useful if connection audits are required later.
