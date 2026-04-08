@@ -145,7 +145,7 @@ export default function StatsModal({ isOpen, onClose, title, data, loading }) {
                       {/* Address/Location */}
                       {item.address && (
                         <div className="flex items-center gap-2 text-slate-400 sm:col-span-2">
-                          <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                          <MapPin className="w-3.5 h-3.5 shrink-0" />
                           <span className="truncate">{item.address}</span>
                         </div>
                       )}

@@ -315,13 +315,13 @@ function SearchMechanicsTab({ token }) {
         {/* Mechanic Type Selector */}
         <div className="flex flex-wrap gap-3 items-end mb-4">
           <div>
-            <label className="text-slate-400 text-xs mb-1.5 block flex items-center gap-1.5">
+            <label className="text-slate-400 text-xs mb-1.5 flex items-center gap-1.5">
               <Filter className="w-3.5 h-3.5 text-amber-400" /> Mechanic Type
             </label>
             <select
               value={mechanicType}
               onChange={(e) => setMechanicType(e.target.value)}
-              className="bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-medium focus:border-amber-500/50 outline-none cursor-pointer min-w-[180px]"
+              className="bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-medium focus:border-amber-500/50 outline-none cursor-pointer min-w-45"
             >
               {MECHANIC_TYPE_OPTIONS.map((opt) => (
                 <option key={opt.id} value={opt.id}>
@@ -2490,7 +2490,7 @@ function ProfileTab({ token }) {
     <div className="max-w-lg mx-auto space-y-6">
       {/* Avatar / header */}
       <div className="flex flex-col items-center gap-3">
-        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-3xl font-bold text-slate-950">
+        <div className="w-20 h-20 rounded-full bg-linear-to-br from-amber-400 to-orange-500 flex items-center justify-center text-3xl font-bold text-slate-950">
           {profile?.name?.charAt(0)?.toUpperCase() || "U"}
         </div>
         <p className="text-slate-400 text-sm">{profile?.email}</p>
