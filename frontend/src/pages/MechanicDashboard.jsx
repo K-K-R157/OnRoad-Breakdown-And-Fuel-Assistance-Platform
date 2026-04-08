@@ -139,7 +139,6 @@ function RequestsTab({ token }) {
   const [showStatsModal, setShowStatsModal] = useState(false);
   const [modalData, setModalData] = useState([]);
   const [modalTitle, setModalTitle] = useState("");
-  const [modalLoading, setModalLoading] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -275,8 +274,7 @@ function RequestsTab({ token }) {
                 today.setHours(0, 0, 0, 0);
                 filtered = requests.filter(
                   (r) =>
-                    r.status === "completed" &&
-                    new Date(r.updatedAt) >= today,
+                    r.status === "completed" && new Date(r.updatedAt) >= today,
                 );
                 title = "Completed Today";
               } else if (s.filter === "totalCompleted") {
@@ -422,7 +420,7 @@ function RequestsTab({ token }) {
         onClose={() => setShowStatsModal(false)}
         title={modalTitle}
         data={modalData}
-        loading={modalLoading}
+        loading={false}
       />
     </div>
   );

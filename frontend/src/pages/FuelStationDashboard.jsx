@@ -132,7 +132,6 @@ function BookingsTab({ token }) {
   const [showStatsModal, setShowStatsModal] = useState(false);
   const [modalData, setModalData] = useState([]);
   const [modalTitle, setModalTitle] = useState("");
-  const [modalLoading, setModalLoading] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -349,7 +348,7 @@ function BookingsTab({ token }) {
         onClose={() => setShowStatsModal(false)}
         title={modalTitle}
         data={modalData}
-        loading={modalLoading}
+        loading={false}
       />
     </div>
   );

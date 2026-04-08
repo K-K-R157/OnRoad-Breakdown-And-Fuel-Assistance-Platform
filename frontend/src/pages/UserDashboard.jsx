@@ -30,9 +30,6 @@ import {
   BatteryCharging,
   Plug,
   Battery,
-  Banknote,
-  Smartphone,
-  CreditCard,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -78,17 +75,14 @@ const PAYMENT_METHODS = [
   {
     id: "cash",
     label: "Cash",
-    icon: <Banknote className="w-5 h-5" />,
   },
   {
     id: "upi",
     label: "UPI",
-    icon: <Smartphone className="w-5 h-5" />,
   },
   {
     id: "card",
     label: "Card",
-    icon: <CreditCard className="w-5 h-5" />,
   },
 ];
 
