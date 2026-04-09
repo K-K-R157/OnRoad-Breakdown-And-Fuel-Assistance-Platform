@@ -23,9 +23,16 @@ const allowedOrigins = process.env.CLIENT_URL
       "http://127.0.0.1:19006",
     ];
 
+const isAllowedOrigin = (origin, callback) => {
+  // Native mobile clients (APK/Expo) may send no Origin header.
+  if (!origin) return callback(null, true);
+  if (allowedOrigins.includes(origin)) return callback(null, true);
+  return callback(new Error("Not allowed by CORS"));
+};
+
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins,
+    origin: isAllowedOrigin,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     credentials: true,
   },
@@ -35,7 +42,7 @@ app.set("io", io);
 
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: isAllowedOrigin,
     credentials: true,
   }),
 );
