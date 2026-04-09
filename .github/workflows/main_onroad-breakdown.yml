@@ -61,5 +61,5 @@ jobs:
         with:
           app-name: 'OnRoad-Breakdown'
           slot-name: 'Production'
-          package: backend
+          package: .
           
