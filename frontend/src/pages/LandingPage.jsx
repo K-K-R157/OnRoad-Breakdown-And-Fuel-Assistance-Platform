@@ -2,7 +2,7 @@
  * LandingPage – Marketing home page.
  * Sections: Hero, Features, How It Works, Testimonials, CTA Footer.
  */
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, useInView } from "framer-motion";
 import {
@@ -19,6 +19,7 @@ import {
   Car,
   Users,
   CheckCircle2,
+  Download,
 } from "lucide-react";
 
 /* ─── Animation helpers ─── */
@@ -181,6 +182,18 @@ function TestimonialCard({ name, role, avatar, rating, text, i }) {
 
 /* ─── Page ─── */
 export default function LandingPage() {
+  const [showDownloadPrompt, setShowDownloadPrompt] = useState(false);
+
+  const handleDownloadApk = () => {
+    const link = document.createElement("a");
+    link.href = "/downloads/onroad-assistance.apk";
+    link.download = "OnRoad-Assistance.apk";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setShowDownloadPrompt(false);
+  };
+
   return (
     <main className="bg-slate-950 min-h-screen overflow-x-hidden">
       {/* ══════════════════════ HERO ══════════════════════ */}
@@ -258,6 +271,14 @@ export default function LandingPage() {
               <MapPin className="w-5 h-5 text-amber-400" />
               Live Tracking
             </Link>
+            <button
+              type="button"
+              onClick={() => setShowDownloadPrompt(true)}
+              className="flex items-center justify-center gap-2 border border-emerald-400/35 hover:border-emerald-300 text-emerald-300 hover:text-emerald-200 font-semibold text-base px-8 py-4 rounded-2xl transition-all duration-200 hover:bg-emerald-400/10"
+            >
+              <Download className="w-5 h-5" />
+              Download App
+            </button>
           </motion.div>
 
           {/* Stats strip */}
@@ -456,6 +477,36 @@ export default function LandingPage() {
           </p>
         </div>
       </footer>
+
+      {showDownloadPrompt && (
+        <div className="fixed inset-0 z-[70] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center px-4">
+          <div className="w-full max-w-md rounded-2xl border border-white/10 bg-slate-900 p-6">
+            <h3 className="text-white text-xl font-semibold mb-2">
+              Download Android App
+            </h3>
+            <p className="text-slate-300 text-sm mb-6">
+              Click <span className="font-semibold text-emerald-300">OK</span>{" "}
+              to download the latest APK.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => setShowDownloadPrompt(false)}
+                className="px-4 py-2 rounded-xl border border-white/15 text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDownloadApk}
+                className="px-4 py-2 rounded-xl bg-emerald-400 text-slate-950 font-semibold hover:bg-emerald-300 transition-colors"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
