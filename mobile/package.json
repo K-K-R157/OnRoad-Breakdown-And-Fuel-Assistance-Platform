@@ -1,0 +1,37 @@
+{
+  "name": "OnRoad-Assistance",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "cross-env EXPO_PUBLIC_API_BASE_URL=https://onroad-breakdown-g3brh6bbgqguefc3.southeastasia-01.azurewebsites.net/api expo start",
+    "start:device": "cross-env EXPO_PUBLIC_API_BASE_URL=http://10.1.9.26:5000/api expo start",
+    "start:device:tunnel": "cross-env EXPO_PUBLIC_API_BASE_URL=http://10.1.9.26:5000/api expo start --tunnel",
+    "android": "cross-env EXPO_PUBLIC_API_BASE_URL=http://10.3.1.141:5000/api expo start --android",
+    "ios": "expo start --ios",
+    "web": "cross-env EXPO_PUBLIC_API_BASE_URL=http://localhost:5000/api expo start --web"
+  },
+  "dependencies": {
+    "@expo/metro-runtime": "~6.1.2",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-picker/picker": "2.11.1",
+    "@react-navigation/native": "^7.2.2",
+    "@react-navigation/native-stack": "^7.14.10",
+    "cors": "^2.8.6",
+    "expo": "~54.0.33",
+    "expo-image-picker": "~17.0.10",
+    "expo-location": "~19.0.8",
+    "expo-status-bar": "~3.0.9",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-native": "0.81.5",
+    "react-native-maps": "1.20.1",
+    "react-native-safe-area-context": "~5.6.0",
+    "react-native-screens": "~4.16.0",
+    "react-native-web": "^0.21.0",
+    "socket.io-client": "^4.7.5"
+  },
+  "private": true,
+  "devDependencies": {
+    "cross-env": "^10.1.0"
+  }
+}

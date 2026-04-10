@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "OnRoad-Assistance",
+    "slug": "OnRoad-Assistance",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#76727a"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#141c21"
+      },
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ],
+      "edgeToEdgeEnabled": true,
+      "package": "com.kundan.onroadassistance"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "a7c48764-5dbd-40d9-a3c8-2da06f8f000b"
+      }
+    }
+  }
+}
