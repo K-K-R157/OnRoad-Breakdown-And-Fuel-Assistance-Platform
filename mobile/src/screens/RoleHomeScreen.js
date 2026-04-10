@@ -149,12 +149,15 @@ export default function RoleHomeScreen() {
   };
 
   return (
-    <SafeAreaView
-      style={[
-        styles.safeArea,
-        { paddingTop: insets.top, paddingBottom: insets.bottom },
-      ]}
-    >
+      <SafeAreaView
+        style={[
+          styles.safeArea,
+          {
+            paddingTop: Math.max(insets.top - spacing.xs, 0),
+            paddingBottom: insets.bottom,
+          },
+        ]}
+      >
       {/* App Header - Branded */}
       <View style={styles.appHeader}>
         <View style={styles.appHeaderLeft}>
@@ -993,8 +996,8 @@ function MechanicPanel({ token, activeTab, mechanicId, bottomInset = 0 }) {
               {item.status !== "completed" && item.status !== "cancelled" && (
                 <Button
                   title="Update Status"
-                  icon="create-outline"
                   variant="secondary"
+                  size="small"
                   onPress={() => openUpdateModal(item)}
                   style={[
                     styles.updateButton,
@@ -1014,8 +1017,11 @@ function MechanicPanel({ token, activeTab, mechanicId, bottomInset = 0 }) {
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Update Request</Text>
-              <Pressable onPress={() => setShowUpdateModal(false)}>
-                <Ionicons name="close" size={24} color={colors.text.muted} />
+              <Pressable
+                style={styles.modalCloseButton}
+                onPress={() => setShowUpdateModal(false)}
+              >
+                <Ionicons name="close" size={22} color={colors.text.secondary} />
               </Pressable>
             </View>
             <ScrollView
@@ -1963,8 +1969,8 @@ function FuelPanel({ token, activeTab, stationId, bottomInset = 0 }) {
               {item.status !== "delivered" && item.status !== "cancelled" && (
                 <Button
                   title="Update Order"
-                  icon="create-outline"
                   variant="secondary"
+                  size="small"
                   onPress={() => openUpdateModal(item)}
                   style={[
                     styles.updateButton,
@@ -1984,8 +1990,11 @@ function FuelPanel({ token, activeTab, stationId, bottomInset = 0 }) {
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Update Order</Text>
-              <Pressable onPress={() => setShowUpdateModal(false)}>
-                <Ionicons name="close" size={24} color={colors.text.muted} />
+              <Pressable
+                style={styles.modalCloseButton}
+                onPress={() => setShowUpdateModal(false)}
+              >
+                <Ionicons name="close" size={22} color={colors.text.secondary} />
               </Pressable>
             </View>
             <ScrollView
@@ -2994,8 +3003,8 @@ function ChargingPanel({ token, activeTab, stationId, bottomInset = 0 }) {
               {item.status !== "completed" && item.status !== "cancelled" && (
                 <Button
                   title="Update Status"
-                  icon="create-outline"
                   variant="secondary"
+                  size="small"
                   onPress={() => openUpdateModal(item)}
                   style={[
                     styles.updateButton,
@@ -3015,8 +3024,11 @@ function ChargingPanel({ token, activeTab, stationId, bottomInset = 0 }) {
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Update Request</Text>
-              <Pressable onPress={() => setShowUpdateModal(false)}>
-                <Ionicons name="close" size={24} color={colors.text.muted} />
+              <Pressable
+                style={styles.modalCloseButton}
+                onPress={() => setShowUpdateModal(false)}
+              >
+                <Ionicons name="close" size={22} color={colors.text.secondary} />
               </Pressable>
             </View>
             <ScrollView
@@ -5110,7 +5122,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
     backgroundColor: colors.bg.primary,
     borderBottomWidth: 1,
     borderBottomColor: colors.border.default,
@@ -5521,7 +5533,20 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
+    minHeight: 40,
+  },
+  modalCloseButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    alignSelf: "center",
+    backgroundColor: colors.bg.tertiary,
+    borderWidth: 1,
+    borderColor: colors.border.default,
+    padding: 0,
   },
   profileModalHeader: {
     paddingTop: spacing.sm,
@@ -5561,7 +5586,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     color: colors.text.primary,
-    fontSize: fontSize.xxl,
+    fontSize: fontSize.xl,
     fontWeight: "700",
   },
   feedbackPreview: {

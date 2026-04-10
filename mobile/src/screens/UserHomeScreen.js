@@ -97,7 +97,10 @@ export default function UserHomeScreen() {
     <SafeAreaView
       style={[
         styles.safeArea,
-        { paddingTop: insets.top, paddingBottom: insets.bottom },
+        {
+          paddingTop: Math.max(insets.top - spacing.xs, 0),
+          paddingBottom: insets.bottom,
+        },
       ]}
     >
       {/* App Header */}
@@ -2743,7 +2746,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
     backgroundColor: colors.bg.primary,
     borderBottomWidth: 1,
     borderBottomColor: colors.border.default,
