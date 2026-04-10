@@ -107,12 +107,7 @@ export default function HomeScreen({ navigation }) {
   const insets = useSafeAreaInsets();
 
   return (
-    <SafeAreaView
-      style={[
-        styles.safeArea,
-        { paddingTop: insets.top, paddingBottom: insets.bottom },
-      ]}
-    >
+    <SafeAreaView style={styles.safeArea}>
       {/* Header with Login */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>

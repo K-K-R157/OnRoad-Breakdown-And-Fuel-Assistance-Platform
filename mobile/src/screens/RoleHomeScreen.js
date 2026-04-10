@@ -149,15 +149,7 @@ export default function RoleHomeScreen() {
   };
 
   return (
-      <SafeAreaView
-        style={[
-          styles.safeArea,
-          {
-            paddingTop: Math.max(insets.top - spacing.xs, 0),
-            paddingBottom: insets.bottom,
-          },
-        ]}
-      >
+    <SafeAreaView style={styles.safeArea}>
       {/* App Header - Branded */}
       <View style={styles.appHeader}>
         <View style={styles.appHeaderLeft}>
