@@ -7,6 +7,7 @@ const session = require("express-session");
 const MongoStore = require("connect-mongo").default;
 const cookieParser = require("cookie-parser");
 const { Server } = require("socket.io");
+const authRoutes = require("./routes/auth");
 
 dotenv.config();
 
@@ -14,7 +15,10 @@ const app = express();
 const server = http.createServer(app);
 
 const allowedOrigins = process.env.CLIENT_URL
-  ? process.env.CLIENT_URL.split(",")
+  ? process.env.CLIENT_URL
+      .split(",")
+      .map((origin) => origin.trim())
+      .filter(Boolean)
   : [
       "http://localhost:5173",
       "http://localhost:8081",
@@ -145,7 +149,12 @@ app.get("/api/health", (req, res) => {
   res.status(200).json({ success: true, message: "OnRoad API is running" });
 });
 
-app.use("/api/auth", require("./routes/auth"));
+app.use("/api/auth", authRoutes);
+// Compatibility for older web clients using /api/login, /api/register, /api/me.
+app.use("/api", authRoutes);
+// Extra compatibility for clients calling /auth/login or /login directly.
+app.use("/auth", authRoutes);
+app.use("/", authRoutes);
 app.use("/api/users", require("./routes/user"));
 app.use("/api/mechanics", require("./routes/mechanic"));
 app.use("/api/fuel-stations", require("./routes/fuelStation"));
