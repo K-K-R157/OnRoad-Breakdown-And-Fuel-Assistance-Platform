@@ -186,7 +186,7 @@ export default function LandingPage() {
 
   const handleDownloadApk = () => {
     const link = document.createElement("a");
-    link.href = "/downloads/onroad-assistance.apk";
+    link.href = "/downloads/onroad-assistance-latest.apk";
     link.download = "OnRoad-Assistance.apk";
     document.body.appendChild(link);
     link.click();
