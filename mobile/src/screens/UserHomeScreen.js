@@ -155,12 +155,22 @@ export default function UserHomeScreen() {
       </ScrollView>
 
       {/* Tab Content */}
-      {activeTab === "mechanic" && <MechanicTab token={session?.token} />}
-      {activeTab === "fuel" && <FuelTab token={session?.token} />}
-      {activeTab === "charging" && <ChargingTab token={session?.token} />}
+      {activeTab === "mechanic" && (
+        <MechanicTab token={session?.token} bottomInset={insets.bottom} />
+      )}
+      {activeTab === "fuel" && (
+        <FuelTab token={session?.token} bottomInset={insets.bottom} />
+      )}
+      {activeTab === "charging" && (
+        <ChargingTab token={session?.token} bottomInset={insets.bottom} />
+      )}
       {activeTab === "requests" && <RequestsTab token={session?.token} />}
       {activeTab === "feedback" && (
-        <FeedbackTab token={session?.token} userId={session?.user?._id} />
+        <FeedbackTab
+          token={session?.token}
+          userId={session?.user?._id}
+          bottomInset={insets.bottom}
+        />
       )}
 
       {/* Profile Modal */}
@@ -233,7 +243,7 @@ const PAYMENT_METHODS = [
   { value: "card", label: "Card", icon: "card-outline" },
 ];
 
-function MechanicTab({ token }) {
+function MechanicTab({ token, bottomInset = 0 }) {
   const [latitude, setLatitude] = useState("12.9716");
   const [longitude, setLongitude] = useState("77.5946");
   const [mechanicType, setMechanicType] = useState("");
@@ -652,7 +662,12 @@ function MechanicTab({ token }) {
 
             <ErrorMessage message={error} />
 
-            <View style={styles.modalButtons}>
+            <View
+              style={[
+                styles.modalButtons,
+                { paddingBottom: spacing.md + bottomInset },
+              ]}
+            >
               <Button
                 title="Cancel"
                 variant="secondary"
@@ -746,7 +761,7 @@ function MechanicCard({ mechanic, onRequest }) {
   );
 }
 
-function FuelTab({ token }) {
+function FuelTab({ token, bottomInset = 0 }) {
   const [latitude, setLatitude] = useState("12.9716");
   const [longitude, setLongitude] = useState("77.5946");
   const [fuelTypeFilter, setFuelTypeFilter] = useState("");
@@ -1161,7 +1176,13 @@ function FuelTab({ token }) {
 
               <ErrorMessage message={error} />
 
-              <View style={[styles.modalButtons, styles.orderModalButtons]}>
+              <View
+                style={[
+                  styles.modalButtons,
+                  styles.orderModalButtons,
+                  { paddingBottom: spacing.md + bottomInset },
+                ]}
+              >
                 <Button
                   title="Cancel"
                   variant="secondary"
@@ -1286,7 +1307,7 @@ function FuelStationCard({ station, onOrder }) {
   );
 }
 
-function ChargingTab({ token }) {
+function ChargingTab({ token, bottomInset = 0 }) {
   const [latitude, setLatitude] = useState("12.9716");
   const [longitude, setLongitude] = useState("77.5946");
   const [vehicleTypeFilter, setVehicleTypeFilter] = useState("");
@@ -1765,7 +1786,13 @@ function ChargingTab({ token }) {
 
               <ErrorMessage message={error} />
 
-              <View style={[styles.modalButtons, styles.orderModalButtons]}>
+              <View
+                style={[
+                  styles.modalButtons,
+                  styles.orderModalButtons,
+                  { paddingBottom: spacing.md + bottomInset },
+                ]}
+              >
                 <Button
                   title="Cancel"
                   variant="secondary"
@@ -2213,9 +2240,10 @@ function RequestsTab({ token }) {
 }
 
 // ============== FEEDBACK TAB ==============
-function FeedbackTab({ token, userId }) {
+function FeedbackTab({ token, userId, bottomInset = 0 }) {
   const [myFeedback, setMyFeedback] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [refreshing, setRefreshing] = useState(false);
@@ -2311,7 +2339,7 @@ function FeedbackTab({ token, userId }) {
   const submitFeedback = async () => {
     if (!selectedRequest) return;
 
-    setLoading(true);
+    setSubmitting(true);
     setError("");
     try {
       await feedbackAPI.create(token, {
@@ -2329,11 +2357,11 @@ function FeedbackTab({ token, userId }) {
       });
       setSuccess("Feedback submitted! Thank you.");
       setShowFeedbackModal(false);
-      loadData();
+      await loadData();
     } catch (err) {
       setError(err.message || "Could not submit feedback");
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
@@ -2513,7 +2541,12 @@ function FeedbackTab({ token, userId }) {
 
             <ErrorMessage message={error} />
 
-            <View style={styles.modalButtons}>
+            <View
+              style={[
+                styles.modalButtons,
+                { paddingBottom: spacing.md + bottomInset },
+              ]}
+            >
               <Button
                 title="Cancel"
                 variant="secondary"
@@ -2524,7 +2557,7 @@ function FeedbackTab({ token, userId }) {
                 title="Submit Feedback"
                 icon="send-outline"
                 onPress={submitFeedback}
-                loading={loading}
+                loading={submitting}
                 variant="primary"
                 style={styles.modalButton}
               />

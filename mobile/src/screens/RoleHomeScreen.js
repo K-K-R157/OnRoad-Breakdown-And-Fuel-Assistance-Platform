@@ -241,7 +241,11 @@ export default function RoleHomeScreen() {
         />
       )}
       {role === "admin" && (
-        <AdminPanel token={session?.token} activeTab={activeTab} />
+        <AdminPanel
+          token={session?.token}
+          activeTab={activeTab}
+          bottomInset={insets.bottom}
+        />
       )}
 
       {/* Profile Modal */}
@@ -861,7 +865,12 @@ function MechanicPanel({ token, activeTab, mechanicId, bottomInset = 0 }) {
                 numberOfLines={4}
               />
 
-              <View style={styles.modalButtons}>
+              <View
+                style={[
+                  styles.modalButtons,
+                  { paddingBottom: spacing.md + bottomInset },
+                ]}
+              >
                 <Button
                   title="Cancel"
                   variant="outline"
@@ -1827,7 +1836,12 @@ function FuelPanel({ token, activeTab, stationId, bottomInset = 0 }) {
                 numberOfLines={4}
               />
 
-              <View style={styles.modalButtons}>
+              <View
+                style={[
+                  styles.modalButtons,
+                  { paddingBottom: spacing.md + bottomInset },
+                ]}
+              >
                 <Button
                   title="Cancel"
                   variant="outline"
@@ -2854,7 +2868,12 @@ function ChargingPanel({ token, activeTab, stationId, bottomInset = 0 }) {
                 numberOfLines={4}
               />
 
-              <View style={styles.modalButtons}>
+              <View
+                style={[
+                  styles.modalButtons,
+                  { paddingBottom: spacing.md + bottomInset },
+                ]}
+              >
                 <Button
                   title="Cancel"
                   variant="outline"
@@ -3147,7 +3166,7 @@ function ChargingPanel({ token, activeTab, stationId, bottomInset = 0 }) {
 }
 
 // ============== ADMIN PANEL ==============
-function AdminPanel({ token, activeTab }) {
+function AdminPanel({ token, activeTab, bottomInset = 0 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -3796,7 +3815,12 @@ function AdminPanel({ token, activeTab }) {
                 numberOfLines={4}
               />
 
-              <View style={styles.modalButtons}>
+              <View
+                style={[
+                  styles.modalButtons,
+                  { paddingBottom: spacing.md + bottomInset },
+                ]}
+              >
                 <Button
                   title="Cancel"
                   variant="outline"

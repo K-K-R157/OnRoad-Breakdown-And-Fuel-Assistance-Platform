@@ -38,16 +38,20 @@ export function SocketProvider({ children }) {
   const [requestStatus, setRequestStatus] = useState(null);
   const socketRef = useRef(null);
   const locationWatchRef = useRef(null);
+  const timeoutWarnShownRef = useRef(false);
+  const lastConnectErrorRef = useRef("");
 
   // Connect to socket when user is logged in
   useEffect(() => {
     if (session?.token && session?.user) {
       const socket = io(SOCKET_URL, {
-        transports: ["polling", "websocket"],
+        transports: ["websocket", "polling"],
         autoConnect: true,
         reconnection: true,
-        reconnectionAttempts: 5,
-        reconnectionDelay: 1000,
+        timeout: 10000,
+        reconnectionAttempts: 8,
+        reconnectionDelay: 2000,
+        reconnectionDelayMax: 8000,
       });
 
       socketRef.current = socket;
@@ -55,6 +59,8 @@ export function SocketProvider({ children }) {
       socket.on("connect", () => {
         debugLog("Socket connected:", socket.id);
         setIsConnected(true);
+        timeoutWarnShownRef.current = false;
+        lastConnectErrorRef.current = "";
 
         // Join room based on user role
         const role = session.user.role;
@@ -69,7 +75,17 @@ export function SocketProvider({ children }) {
       });
 
       socket.on("connect_error", (error) => {
-        debugError("Socket connection error:", error.message);
+        const message = error?.message || "Unknown connection error";
+        const isTimeout = message.toLowerCase().includes("timeout");
+
+        // Timeout reconnects are expected on intermittent mobile networks; keep console quiet.
+        if (isTimeout) {
+          timeoutWarnShownRef.current = true;
+        } else if (lastConnectErrorRef.current !== message) {
+          debugError("Socket connection error:", message);
+          lastConnectErrorRef.current = message;
+        }
+
         setIsConnected(false);
       });
 
