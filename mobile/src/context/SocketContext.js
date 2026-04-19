@@ -76,11 +76,15 @@ export function SocketProvider({ children }) {
 
       socket.on("connect_error", (error) => {
         const message = error?.message || "Unknown connection error";
-        const isTimeout = message.toLowerCase().includes("timeout");
+        const normalizedMessage = message.toLowerCase();
+        const isTimeout = normalizedMessage.includes("timeout");
+        const isTransportFallback =
+          normalizedMessage.includes("websocket error");
 
-        // Timeout reconnects are expected on intermittent mobile networks; keep console quiet.
-        if (isTimeout) {
+        // Timeout/transport reconnects are expected on intermittent mobile networks; keep console quiet.
+        if (isTimeout || isTransportFallback) {
           timeoutWarnShownRef.current = true;
+          debugLog("Socket reconnecting with fallback transport");
         } else if (lastConnectErrorRef.current !== message) {
           debugError("Socket connection error:", message);
           lastConnectErrorRef.current = message;

@@ -15,7 +15,10 @@ import {
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { Ionicons } from "@expo/vector-icons";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { useAuth } from "../context/AuthContext";
 import { useSocket } from "../context/SocketContext";
 import {
@@ -1022,7 +1025,11 @@ function MechanicPanel({ token, activeTab, mechanicId, bottomInset = 0 }) {
                 style={styles.modalCloseButton}
                 onPress={() => setShowUpdateModal(false)}
               >
-                <Ionicons name="close" size={22} color={colors.text.secondary} />
+                <Ionicons
+                  name="close"
+                  size={22}
+                  color={colors.text.secondary}
+                />
               </Pressable>
             </View>
             <ScrollView
@@ -2000,7 +2007,11 @@ function FuelPanel({ token, activeTab, stationId, bottomInset = 0 }) {
                 style={styles.modalCloseButton}
                 onPress={() => setShowUpdateModal(false)}
               >
-                <Ionicons name="close" size={22} color={colors.text.secondary} />
+                <Ionicons
+                  name="close"
+                  size={22}
+                  color={colors.text.secondary}
+                />
               </Pressable>
             </View>
             <ScrollView
@@ -3039,7 +3050,11 @@ function ChargingPanel({ token, activeTab, stationId, bottomInset = 0 }) {
                 style={styles.modalCloseButton}
                 onPress={() => setShowUpdateModal(false)}
               >
-                <Ionicons name="close" size={22} color={colors.text.secondary} />
+                <Ionicons
+                  name="close"
+                  size={22}
+                  color={colors.text.secondary}
+                />
               </Pressable>
             </View>
             <ScrollView
@@ -5574,8 +5589,6 @@ const styles = StyleSheet.create({
     marginLeft: "auto",
     paddingVertical: 2,
     paddingHorizontal: 2,
-    borderBottomWidth: 1,
-    borderBottomColor: `${colors.error}55`,
   },
   profileModalLogoutActionPressed: {
     opacity: 0.65,

@@ -16,7 +16,10 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 import * as ImagePicker from "expo-image-picker";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { useAuth } from "../context/AuthContext";
 import { useSocket } from "../context/SocketContext";
 import {
@@ -229,19 +232,168 @@ export default function UserHomeScreen() {
   );
 }
 
-const RANGE_OPTIONS = [
-  { value: 5000, label: "5 km" },
-  { value: 10000, label: "10 km" },
-  { value: 15000, label: "15 km" },
-  { value: 25000, label: "25 km" },
-  { value: 50000, label: "50 km" },
-];
+const SEARCH_RANGE_MIN_KM = 5;
+const SEARCH_RANGE_MAX_KM = 100;
+const SEARCH_RANGE_BUTTON_STEP_METERS = 1000;
 
 const PAYMENT_METHODS = [
   { value: "cash", label: "Cash", icon: "cash-outline" },
   { value: "upi", label: "UPI", icon: "phone-portrait-outline" },
   { value: "card", label: "Card", icon: "card-outline" },
 ];
+
+function formatRangeKm(rangeInMeters) {
+  const km = rangeInMeters / 1000;
+  return Number.isInteger(km)
+    ? `${km}`
+    : parseFloat(km.toFixed(1)).toString();
+}
+
+function SearchRangeSlider({ value, onChange, accentColor }) {
+  const [trackWidth, setTrackWidth] = useState(0);
+  const minRangeMeters = SEARCH_RANGE_MIN_KM * 1000;
+  const maxRangeMeters = SEARCH_RANGE_MAX_KM * 1000;
+  const currentValue = Math.min(maxRangeMeters, Math.max(minRangeMeters, value));
+  const currentKm = currentValue / 1000;
+  const sliderProgress =
+    (currentKm - SEARCH_RANGE_MIN_KM) /
+    (SEARCH_RANGE_MAX_KM - SEARCH_RANGE_MIN_KM);
+  const filledWidth = trackWidth * sliderProgress;
+
+  const updateRangeFromTouch = useCallback(
+    (xPosition) => {
+      if (!trackWidth) return;
+      const clampedX = Math.min(Math.max(xPosition, 0), trackWidth);
+      const rawKm =
+        SEARCH_RANGE_MIN_KM +
+        (clampedX / trackWidth) * (SEARCH_RANGE_MAX_KM - SEARCH_RANGE_MIN_KM);
+      const nextValue = Math.round(rawKm * 10) * 100;
+      if (nextValue !== currentValue) {
+        onChange(nextValue);
+      }
+    },
+    [currentValue, onChange, trackWidth],
+  );
+
+  const updateRangeByStep = useCallback(
+    (direction) => {
+      const nextValue = Math.min(
+        maxRangeMeters,
+        Math.max(
+          minRangeMeters,
+          currentValue + direction * SEARCH_RANGE_BUTTON_STEP_METERS,
+        ),
+      );
+      if (nextValue !== currentValue) {
+        onChange(nextValue);
+      }
+    },
+    [currentValue, maxRangeMeters, minRangeMeters, onChange],
+  );
+
+  const canDecrease = currentValue > minRangeMeters;
+  const canIncrease = currentValue < maxRangeMeters;
+
+  return (
+    <View style={styles.rangeSliderWrap}>
+      <View style={styles.rangeSliderHeader}>
+        <Text style={styles.rangeSliderLabel}>Search Radius</Text>
+        <Text style={[styles.rangeSliderValue, { color: accentColor }]}>
+          {formatRangeKm(currentValue)} km
+        </Text>
+      </View>
+
+      <View style={styles.rangeSliderControls}>
+        <Pressable
+          style={({ pressed }) => [
+            styles.rangeStepper,
+            {
+              borderColor: `${accentColor}55`,
+              backgroundColor: `${accentColor}22`,
+            },
+            pressed && styles.rangeStepperPressed,
+            !canDecrease && styles.rangeStepperDisabled,
+          ]}
+          onPress={() => updateRangeByStep(-1)}
+          disabled={!canDecrease}
+          hitSlop={6}
+        >
+          <Ionicons
+            name="chevron-down"
+            size={20}
+            color={accentColor}
+            style={styles.rangeStepperIcon}
+          />
+        </Pressable>
+
+        <View style={styles.rangeSliderTrackWrap}>
+          <View
+            style={styles.rangeTrackTouchArea}
+            onLayout={(event) => setTrackWidth(event.nativeEvent.layout.width)}
+            onStartShouldSetResponder={() => true}
+            onMoveShouldSetResponder={() => true}
+            onResponderGrant={(event) =>
+              updateRangeFromTouch(event.nativeEvent.locationX)
+            }
+            onResponderMove={(event) =>
+              updateRangeFromTouch(event.nativeEvent.locationX)
+            }
+          >
+            <View style={styles.rangeTrackBase} />
+            <View
+              style={[
+                styles.rangeTrackFill,
+                { width: filledWidth, backgroundColor: accentColor },
+              ]}
+            />
+            <View
+              style={[
+                styles.rangeThumb,
+                {
+                  left: Math.min(
+                    Math.max(0, filledWidth - 10),
+                    Math.max(0, trackWidth - 20),
+                  ),
+                  borderColor: accentColor,
+                  backgroundColor: accentColor,
+                },
+              ]}
+            />
+          </View>
+
+        </View>
+
+        <Pressable
+          style={({ pressed }) => [
+            styles.rangeStepper,
+            {
+              borderColor: `${accentColor}55`,
+              backgroundColor: `${accentColor}22`,
+            },
+            pressed && styles.rangeStepperPressed,
+            !canIncrease && styles.rangeStepperDisabled,
+          ]}
+          onPress={() => updateRangeByStep(1)}
+          disabled={!canIncrease}
+          hitSlop={6}
+        >
+          <Ionicons
+            name="chevron-up"
+            size={20}
+            color={accentColor}
+            style={styles.rangeStepperIcon}
+          />
+        </Pressable>
+      </View>
+
+      <View style={styles.rangeTicksRow}>
+        <Text style={styles.rangeTickText}>{SEARCH_RANGE_MIN_KM} km</Text>
+        <Text style={styles.rangeTickText}>50 km</Text>
+        <Text style={styles.rangeTickText}>{SEARCH_RANGE_MAX_KM} km</Text>
+      </View>
+    </View>
+  );
+}
 
 function MechanicTab({ token, bottomInset = 0 }) {
   const [latitude, setLatitude] = useState("12.9716");
@@ -330,7 +482,7 @@ function MechanicTab({ token, bottomInset = 0 }) {
       setList(res?.data || []);
       if ((res?.data || []).length === 0) {
         setError(
-          `No mechanics found within ${searchRange / 1000} km. Try increasing the search range.`,
+          `No mechanics found within ${formatRangeKm(searchRange)} km. Try increasing the search range.`,
         );
       }
     } catch (err) {
@@ -471,21 +623,11 @@ function MechanicTab({ token, bottomInset = 0 }) {
 
       {/* Search Range */}
       <Text style={styles.filterLabel}>Search Range</Text>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.filterScroll}
-      >
-        {RANGE_OPTIONS.map((range) => (
-          <FilterChip
-            key={range.value}
-            label={range.label}
-            icon="📍"
-            selected={searchRange === range.value}
-            onPress={() => setSearchRange(range.value)}
-          />
-        ))}
-      </ScrollView>
+      <SearchRangeSlider
+        value={searchRange}
+        onChange={setSearchRange}
+        accentColor={colors.brand.primary}
+      />
 
       {/* Search Button */}
       <Button
@@ -622,7 +764,9 @@ function MechanicTab({ token, bottomInset = 0 }) {
             />
             <View style={styles.gpsHintRow}>
               <Ionicons name="location" size={12} color={colors.text.muted} />
-              <Text style={styles.gpsHint}>GPS location will be used if left empty</Text>
+              <Text style={styles.gpsHint}>
+                GPS location will be used if left empty
+              </Text>
             </View>
 
             {/* Payment Method Selection */}
@@ -811,7 +955,7 @@ function FuelTab({ token, bottomInset = 0 }) {
       setList(res?.data || []);
       if ((res?.data || []).length === 0) {
         setError(
-          `No fuel stations found within ${searchRange / 1000} km. Try increasing the search range.`,
+          `No fuel stations found within ${formatRangeKm(searchRange)} km. Try increasing the search range.`,
         );
       }
     } catch (err) {
@@ -967,21 +1111,11 @@ function FuelTab({ token, bottomInset = 0 }) {
 
       {/* Search Range */}
       <Text style={styles.filterLabel}>Search Range</Text>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.filterScroll}
-      >
-        {RANGE_OPTIONS.map((range) => (
-          <FilterChip
-            key={range.value}
-            label={range.label}
-            icon="📍"
-            selected={searchRange === range.value}
-            onPress={() => setSearchRange(range.value)}
-          />
-        ))}
-      </ScrollView>
+      <SearchRangeSlider
+        value={searchRange}
+        onChange={setSearchRange}
+        accentColor={colors.brand.cyan}
+      />
 
       {/* Search Button */}
       <Button
@@ -1112,7 +1246,9 @@ function FuelTab({ token, bottomInset = 0 }) {
               />
               <View style={styles.gpsHintRow}>
                 <Ionicons name="location" size={12} color={colors.text.muted} />
-                <Text style={styles.gpsHint}>GPS location will be used if left empty</Text>
+                <Text style={styles.gpsHint}>
+                  GPS location will be used if left empty
+                </Text>
               </View>
 
               {/* Payment Method Selection */}
@@ -1363,7 +1499,7 @@ function ChargingTab({ token, bottomInset = 0 }) {
       setList(res?.data || []);
       if ((res?.data || []).length === 0) {
         setError(
-          `No charging stations found within ${searchRange / 1000} km. Try increasing the search range.`,
+          `No charging stations found within ${formatRangeKm(searchRange)} km. Try increasing the search range.`,
         );
       }
     } catch (err) {
@@ -1537,21 +1673,11 @@ function ChargingTab({ token, bottomInset = 0 }) {
 
       {/* Search Range */}
       <Text style={styles.filterLabel}>Search Range</Text>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.filterScroll}
-      >
-        {RANGE_OPTIONS.map((range) => (
-          <FilterChip
-            key={range.value}
-            label={range.label}
-            icon="📍"
-            selected={searchRange === range.value}
-            onPress={() => setSearchRange(range.value)}
-          />
-        ))}
-      </ScrollView>
+      <SearchRangeSlider
+        value={searchRange}
+        onChange={setSearchRange}
+        accentColor={colors.brand.emerald}
+      />
 
       {/* Search Button */}
       <Button
@@ -1746,7 +1872,9 @@ function ChargingTab({ token, bottomInset = 0 }) {
               />
               <View style={styles.gpsHintRow}>
                 <Ionicons name="location" size={12} color={colors.text.muted} />
-                <Text style={styles.gpsHint}>GPS location will be used if left empty</Text>
+                <Text style={styles.gpsHint}>
+                  GPS location will be used if left empty
+                </Text>
               </View>
 
               {/* Payment Method Selection */}
@@ -2974,6 +3102,95 @@ const styles = StyleSheet.create({
   filterScroll: {
     marginBottom: spacing.md,
   },
+  rangeSliderWrap: {
+    backgroundColor: colors.bg.tertiary,
+    borderWidth: 1,
+    borderColor: colors.border.default,
+    borderRadius: borderRadius.lg,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  rangeSliderHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: spacing.sm,
+  },
+  rangeSliderLabel: {
+    color: colors.text.muted,
+    fontSize: fontSize.xs,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+  },
+  rangeSliderValue: {
+    fontSize: fontSize.md,
+    fontWeight: "700",
+  },
+  rangeSliderControls: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  rangeSliderTrackWrap: {
+    flex: 1,
+  },
+  rangeStepper: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  rangeStepperPressed: {
+    transform: [{ scale: 0.97 }],
+  },
+  rangeStepperDisabled: {
+    opacity: 0.35,
+  },
+  rangeStepperIcon: {
+    marginTop: 1,
+  },
+  rangeTrackTouchArea: {
+    height: 28,
+    justifyContent: "center",
+  },
+  rangeTrackBase: {
+    height: 6,
+    borderRadius: 999,
+    backgroundColor: colors.bg.input,
+  },
+  rangeTrackFill: {
+    position: "absolute",
+    left: 0,
+    height: 6,
+    borderRadius: 999,
+  },
+  rangeThumb: {
+    position: "absolute",
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  rangeTicksRow: {
+    marginTop: spacing.xs,
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  rangeTickText: {
+    color: colors.text.muted,
+    fontSize: fontSize.xs,
+  },
   filterRow: {
     flexDirection: "row",
     gap: spacing.sm,
@@ -3200,8 +3417,6 @@ const styles = StyleSheet.create({
     marginLeft: "auto",
     paddingVertical: 2,
     paddingHorizontal: 2,
-    borderBottomWidth: 1,
-    borderBottomColor: `${colors.error}55`,
   },
   profileModalLogoutActionPressed: {
     opacity: 0.65,
