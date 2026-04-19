@@ -479,7 +479,7 @@ export default function LandingPage() {
       </footer>
 
       {showDownloadPrompt && (
-        <div className="fixed inset-0 z-[70] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center px-4">
+        <div className="fixed inset-0 z-70 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center px-4">
           <div className="w-full max-w-md rounded-2xl border border-white/10 bg-slate-900 p-6">
             <h3 className="text-white text-xl font-semibold mb-2">
               Download Android App

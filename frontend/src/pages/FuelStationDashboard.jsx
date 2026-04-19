@@ -817,7 +817,7 @@ function FuelTypesTab({ token }) {
     );
 
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className="max-w-2xl mx-auto space-y-6">
       <div className="glass rounded-2xl p-6 border border-white/8">
         <h2 className="text-lg font-semibold text-white mb-2 flex items-center gap-2">
           <Fuel className="w-5 h-5 text-amber-400" /> Manage Fuel Types
