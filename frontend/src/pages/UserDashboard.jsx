@@ -71,21 +71,6 @@ const STATUS_COLORS = {
   delivered: "bg-green-500/10 text-green-400 border-green-500/20",
 };
 
-const PAYMENT_METHODS = [
-  {
-    id: "cash",
-    label: "Cash",
-  },
-  {
-    id: "upi",
-    label: "UPI",
-  },
-  {
-    id: "card",
-    label: "Card",
-  },
-];
-
 const MECHANIC_TYPE_OPTIONS = [
   { id: "", label: "All Types", emoji: "🔧", color: "slate" },
   { id: "car", label: "Car Mechanic", emoji: "🚗", color: "blue" },
@@ -180,7 +165,6 @@ function SearchMechanicsTab({ token }) {
   const [requestForm, setRequestForm] = useState({
     problemDescription: "",
     address: "",
-    paymentMethod: "cash",
   });
   const [vehiclePhoto, setVehiclePhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
@@ -272,7 +256,6 @@ function SearchMechanicsTab({ token }) {
         mechanicId: selectedMechanic._id,
         problemDescription: requestForm.problemDescription,
         address: requestForm.address || selectedMechanic.address,
-        paymentMethod: requestForm.paymentMethod,
         location: userLoc
           ? { type: "Point", coordinates: [userLoc.lng, userLoc.lat] }
           : undefined,
@@ -286,11 +269,7 @@ function SearchMechanicsTab({ token }) {
       );
       setShowRequestForm(false);
       setSelectedMechanic(null);
-      setRequestForm({
-        problemDescription: "",
-        address: "",
-        paymentMethod: "cash",
-      });
+      setRequestForm({ problemDescription: "", address: "" });
       setVehiclePhoto(null);
       setPhotoPreview(null);
     } catch (err) {
@@ -315,13 +294,13 @@ function SearchMechanicsTab({ token }) {
         {/* Mechanic Type Selector */}
         <div className="flex flex-wrap gap-3 items-end mb-4">
           <div>
-            <label className="text-slate-400 text-xs mb-1.5 flex items-center gap-1.5">
+            <label className="text-slate-400 text-xs mb-1.5 block flex items-center gap-1.5">
               <Filter className="w-3.5 h-3.5 text-amber-400" /> Mechanic Type
             </label>
             <select
               value={mechanicType}
               onChange={(e) => setMechanicType(e.target.value)}
-              className="bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-medium focus:border-amber-500/50 outline-none cursor-pointer min-w-45"
+              className="bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-medium focus:border-amber-500/50 outline-none cursor-pointer min-w-[180px]"
             >
               {MECHANIC_TYPE_OPTIONS.map((opt) => (
                 <option key={opt.id} value={opt.id}>
@@ -587,27 +566,6 @@ function SearchMechanicsTab({ token }) {
                   }
                   className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder:text-slate-500 focus:border-amber-500/50 outline-none"
                 />
-                <div>
-                  <label className="text-slate-400 text-xs mb-1 block">
-                    Payment Method
-                  </label>
-                  <select
-                    value={requestForm.paymentMethod}
-                    onChange={(e) =>
-                      setRequestForm((p) => ({
-                        ...p,
-                        paymentMethod: e.target.value,
-                      }))
-                    }
-                    className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:border-amber-500/50 outline-none"
-                  >
-                    {PAYMENT_METHODS.map((method) => (
-                      <option key={method.id} value={method.id}>
-                        {method.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
                 {/* Optional Vehicle Photo */}
                 <div>
                   <label className="text-slate-400 text-xs mb-1.5 block">
@@ -1125,11 +1083,8 @@ function SearchFuelTab({ token }) {
                     }
                     className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:border-amber-500/50 outline-none"
                   >
-                    {PAYMENT_METHODS.map((method) => (
-                      <option key={method.id} value={method.id}>
-                        {method.label}
-                      </option>
-                    ))}
+                    <option value="cash">Cash on Delivery</option>
+                    <option value="online">Online Payment</option>
                   </select>
                 </div>
                 {/* Price estimate */}
@@ -1781,11 +1736,10 @@ function SearchChargingTab({ token }) {
                     }
                     className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:border-green-500/50 outline-none"
                   >
-                    {PAYMENT_METHODS.map((method) => (
-                      <option key={method.id} value={method.id}>
-                        {method.label}
-                      </option>
-                    ))}
+                    <option value="cash">Cash on Delivery</option>
+                    <option value="upi">UPI</option>
+                    <option value="card">Card</option>
+                    <option value="online">Online Payment</option>
                   </select>
                 </div>
                 {/* Price estimate */}
@@ -2490,7 +2444,7 @@ function ProfileTab({ token }) {
     <div className="max-w-lg mx-auto space-y-6">
       {/* Avatar / header */}
       <div className="flex flex-col items-center gap-3">
-        <div className="w-20 h-20 rounded-full bg-linear-to-br from-amber-400 to-orange-500 flex items-center justify-center text-3xl font-bold text-slate-950">
+        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-3xl font-bold text-slate-950">
           {profile?.name?.charAt(0)?.toUpperCase() || "U"}
         </div>
         <p className="text-slate-400 text-sm">{profile?.email}</p>
